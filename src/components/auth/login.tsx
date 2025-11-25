@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,12 +9,23 @@ import { Checkbox } from "../ui/checkbox";
 import { useRouter } from "next/navigation";
 import { loginFormType } from "./auth.types";
 import { useForm } from "react-hook-form";
+import { useAppDispatch } from "@/redux/hooks";
+import { setUser } from "@/redux/slices/authSlice";
+import { toast } from "sonner";
 import Image from "next/image";
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
 
 export default function Login() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const logoRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLDivElement>(null);
+  const subtitleRef = useRef<HTMLParagraphElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const {
     register,
@@ -28,46 +39,168 @@ export default function Login() {
     },
   });
 
+  useGSAP(
+    () => {
+      const tl = gsap.timeline({ delay: 0.3 });
+
+      // Initial states
+      gsap.set(cardRef.current, {
+        opacity: 0,
+        y: 50,
+        scale: 0.95,
+      });
+
+      gsap.set(logoRef.current, {
+        opacity: 0,
+        y: -30,
+        scale: 0.8,
+      });
+
+      gsap.set(titleRef.current, {
+        opacity: 0,
+        y: 20,
+      });
+
+      gsap.set(subtitleRef.current, {
+        opacity: 0,
+        y: 15,
+      });
+
+      gsap.set(formRef.current, {
+        opacity: 0,
+        y: 30,
+      });
+
+      // Animation sequence
+      tl.to(cardRef.current, {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        duration: 0.8,
+        ease: "power2.out",
+      })
+        .to(
+          logoRef.current,
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.6,
+            ease: "back.out(1.7)",
+          },
+          "-=0.4"
+        )
+        .to(
+          titleRef.current,
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.5,
+            ease: "power2.out",
+          },
+          "-=0.3"
+        )
+        .to(
+          subtitleRef.current,
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.5,
+            ease: "power2.out",
+          },
+          "-=0.4"
+        )
+        .to(
+          formRef.current,
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.6,
+            ease: "power2.out",
+          },
+          "-=0.3"
+        );
+    },
+    { scope: cardRef }
+  );
+
   const onSubmit = (data: loginFormType) => {
     setIsLoading(true);
 
-    // Simple form submission - just log the data
-    console.log("Login form data:", {
-      email: data.email.trim(),
-      password: data.password.trim(),
-      remember: data.remember,
-    });
+    const email = data.email.trim();
+    const password = data.password.trim();
 
-    // Simulate loading and redirect
-    setTimeout(() => {
+    console.log("Login attempt:", { email, password });
+
+    // Simple authentication: any email + password "123456789"
+    if (password === "123456789") {
+      // Create user object
+      const user = {
+        id: "user_" + Date.now(),
+        name: email.split("@")[0], // Use email prefix as name
+        email: email,
+        role: "admin",
+      };
+
+      // Generate simple tokens
+      const accessToken = "token_" + Date.now();
+      const refreshToken = "refresh_" + Date.now();
+
+      // Dispatch to Redux store (this also saves to localStorage)
+      dispatch(
+        setUser({
+          user,
+          accessToken,
+          refreshToken,
+        })
+      );
+
+      toast.success("Login successful! Welcome back.");
+
+      // Redirect to main dashboard
+      setTimeout(() => {
+        setIsLoading(false);
+        router.push("/");
+      }, 1000);
+    } else {
+      // Authentication failed
       setIsLoading(false);
-      router.push("/");
-    }, 1000);
+      toast.error("Invalid credentials. Please use password: 123456789");
+    }
   };
 
   return (
-    <Card className="w-full max-w-xl bg-white/60 backdrop-blur-[2px] shadow-2xl border border-white/50 rounded-4xl p-8">
+    <Card
+      ref={cardRef}
+      className="w-full max-w-xl bg-white/60 backdrop-blur-[2px] shadow-2xl border border-white/50 rounded-4xl p-8"
+    >
       <CardHeader className="text-center space-y-4 pb-6 px-0">
-        <Image
-          src="/auth/logo.png"
-          alt="logo"
-          width={120}
-          height={120}
-          className="mx-auto"
-        />
-        <div className="space-y-1">
+        <div ref={logoRef}>
+          <Image
+            src="/auth/logo.png"
+            alt="logo"
+            width={120}
+            height={120}
+            className="mx-auto"
+          />
+        </div>
+        <div ref={titleRef} className="space-y-1">
           <h1 className="text-4xl font-bold text-gray-900">Welcome!</h1>
           <h2 className="text-2xl font-bold text-gray-900">
             to your Admin Dashboard.
           </h2>
         </div>
-        <p className="text-sm text-gray-600 font-normal pt-2">
+        <p ref={subtitleRef} className="text-sm text-gray-600 font-normal pt-2">
           Please sign in to access your admin dashboard and manage your platform
           securely
         </p>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form
+          ref={formRef}
+          onSubmit={handleSubmit(onSubmit)}
+          className="space-y-6"
+        >
           <div className="space-y-2">
             <Label htmlFor="email" className="text-gray-900 font-medium">
               Email*
@@ -75,7 +208,7 @@ export default function Login() {
             <Input
               id="email"
               type="email"
-              placeholder=""
+              placeholder="Enter your email"
               {...register("email", {
                 required: "Email is required",
                 pattern: {
@@ -98,7 +231,7 @@ export default function Login() {
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder=""
+                placeholder="Enter your password"
                 {...register("password", {
                   required: "Password is required",
                   minLength: {

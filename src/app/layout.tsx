@@ -6,6 +6,7 @@ import ReduxProvider from "@/redux/Provider";
 import { Toaster } from "sonner";
 import AuthInitializer from "@/components/AuthInitializer";
 import { SocketProvider } from "@/contexts/SocketContext";
+import LandingWrapper from "@/components/LandingWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,10 +24,10 @@ const geistMono = Geist_Mono({
 // });
 
 export const metadata: Metadata = {
-  title: "Fund Raise Dashboard",
-  description: "Fund Raise Dashboard",
+  title: "PASS IT ALONG - Dashboard",
+  description: "PASS IT ALONG - Dashboard",
   icons: {
-    icon: [{ url: "/Logo.png", type: "image/svg+xml" }],
+    icon: [{ url: "/favicon_white.svg", type: "image/svg+xml" }],
   },
   manifest: "/site.webmanifest",
 };
@@ -39,7 +40,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/Logo.png" type="image/png" />
+        <title>PASS IT ALONG - Dashboard</title>
+        <link rel="icon" href="/favicon_white.svg" type="image/svg+xml" />
         <link rel="manifest" href="/site.webmanifest" />
       </head>
       <body
@@ -48,7 +50,7 @@ export default function RootLayout({
         <ReduxProvider>
           <SocketProvider>
             <AuthInitializer />
-            {children}
+            <LandingWrapper>{children}</LandingWrapper>
             <Toaster
               position="top-right"
               expand={true}
