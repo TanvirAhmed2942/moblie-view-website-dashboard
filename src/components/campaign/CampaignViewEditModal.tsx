@@ -1,17 +1,20 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import { Megaphone, X } from "lucide-react";
+import Image from "next/image";
+import React, { useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import { useUpdateCampaignMutation } from '../../features/campaign/campaignApi';
+import { baseURL } from '../../utils/BaseURL';
+import { Button } from "../ui/button";
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
   DialogDescription,
+  DialogTitle,
 } from "../ui/dialog";
-import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
-import { X, Megaphone } from "lucide-react";
-import Image from "next/image";
 
 export interface CampaignData {
   id: string;
@@ -37,13 +40,31 @@ export interface CampaignData {
   organizationType?: string;
   address?: string;
   campaignImage?: string;
+  cause_image?: string;
+  organization_name?: string;
+  title?: string;
+  organization_website?: string;
+  donor_name?: string;
+  cause_title?: string;
+  cause_description?: string;
+  cause_mission?: string;
+  contactPerson_name?: string;
+  contactPerson_email?: string;
+  contactPerson_phone?: string;
+  organization_taxId?: string;
+  organization_type?: string;
+  organization_address?: string;
+  description?: string;
+  targetAmount?: number;
+  campaignStatus?: string;
 }
 
 interface CampaignViewEditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  campaign: CampaignData | null;
+  campaign: any; // Changed to accept raw API response
   mode: "view" | "edit";
+  onSuccess?: () => void;
 }
 
 function CampaignViewEditModal({
@@ -51,40 +72,64 @@ function CampaignViewEditModal({
   onClose,
   campaign,
   mode,
+  onSuccess,
 }: CampaignViewEditModalProps) {
   const [formData, setFormData] = useState<CampaignData | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [updateCampaign] = useUpdateCampaignMutation();
 
   useEffect(() => {
     if (campaign) {
+      // Transform API response to form data
       setFormData({
-        ...campaign,
-        causeTitle: campaign.causeTitle || "Clean Water for Everyone",
-        longDescription:
-          campaign.longDescription ||
-          "This campaign aims to build and maintain 10 new wells in rural communities, providing access to clean, safe drinking water for over 5,000 people. Access to clean water improves health, education, and economic opportunities.",
-        missionStatement:
-          campaign.missionStatement ||
-          "To ensure every person has the fundamental right to clean and safe drinking water.",
-        contactFullName: campaign.contactFullName || "Jane Doe",
-        contactTitle: campaign.contactTitle || "Campaign Manager",
-        contactEmail: campaign.contactEmail || "info@example.com",
-        contactPhone: campaign.contactPhone || "(555) 123-4567",
-        dafPartner: campaign.dafPartner || "Fidelity Charitable",
-        internalTrackingId: campaign.internalTrackingId || "CAMP-WS2023-04",
-        shortDescription:
-          campaign.shortDescription ||
-          "Help us bring clean water to 5,000 people.",
-        seedDonorName: campaign.seedDonorName || "The Generous Foundation",
-        taxId: campaign.taxId || "12-3456789",
-        organizationType: campaign.organizationType || "501(3) Non-Profit",
-        address: campaign.address || "6391 Elgin St. Celina, Delaware 10299",
-        campaignImage: campaign.campaignImage || "/campaign-image.jpg",
+        id: campaign._id || campaign.id,
+        organizationName: campaign.organization_name || "",
+        campaignName: campaign.title || "",
+        websiteUrl: campaign.organization_website || "",
+        startDate: campaign.startDate ? new Date(campaign.startDate).toISOString().split('T')[0] : "",
+        endDate: campaign.endDate ? new Date(campaign.endDate).toISOString().split('T')[0] : "",
+        seedDonationAmount: campaign.targetAmount ? `$${campaign.targetAmount}` : "$0",
+        causeTitle: campaign.cause_title || "",
+        longDescription: campaign.cause_description || campaign.description || "",
+        missionStatement: campaign.cause_mission || "",
+        contactFullName: campaign.contactPerson_name || "",
+        contactEmail: campaign.contactPerson_email || "",
+        contactPhone: campaign.contactPerson_phone || "",
+        dafPartner: campaign.dafPartner || "",
+        internalTrackingId: campaign.internalTrackingId || "",
+        shortDescription: campaign.description || "",
+        seedDonorName: campaign.donor_name || "",
+        taxId: campaign.organization_taxId || "",
+        organizationType: campaign.organization_type || "",
+        address: campaign.organization_address || campaign.address || "",
+        cause_image: campaign.cause_image || "",
+        organization_name: campaign.organization_name || "",
+        title: campaign.title || "",
+        organization_website: campaign.organization_website || "",
+        donor_name: campaign.donor_name || "",
+        cause_title: campaign.cause_title || "",
+        cause_description: campaign.cause_description || "",
+        cause_mission: campaign.cause_mission || "",
+        contactPerson_name: campaign.contactPerson_name || "",
+        contactPerson_email: campaign.contactPerson_email || "",
+        contactPerson_phone: campaign.contactPerson_phone || "",
+        organization_taxId: campaign.organization_taxId || "",
+        organization_type: campaign.organization_type || "",
+        organization_address: campaign.organization_address || "",
+        description: campaign.description || "",
+        targetAmount: campaign.targetAmount || 0,
+        campaignStatus: campaign.campaignStatus || "draft",
       });
+
+      if (campaign.cause_image) {
+        setImagePreview(baseURL + campaign.cause_image);
+      }
     }
   }, [campaign, isOpen]);
 
-  const handleInputChange = (field: keyof CampaignData, value: string) => {
+  const handleInputChange = (field: keyof CampaignData, value: string | number) => {
     if (formData) {
       setFormData({ ...formData, [field]: value });
     }
@@ -93,6 +138,7 @@ function CampaignViewEditModal({
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setSelectedImage(file);
       const reader = new FileReader();
       reader.onload = (event) => {
         setImagePreview(event.target?.result as string);
@@ -101,10 +147,77 @@ function CampaignViewEditModal({
     }
   };
 
-  const handleSave = () => {
-    console.log("Saving campaign data:", formData);
-    // Here you would typically make an API call to save the data
-    onClose();
+  const prepareFormData = () => {
+    if (!formData) return null;
+
+    // Extract numeric value from currency string
+    const targetAmount = typeof formData.targetAmount === 'number'
+      ? formData.targetAmount
+      : parseFloat(formData.seedDonationAmount?.replace(/[^0-9.-]+/g, "") || "0");
+
+    const campaignData = {
+      organization_name: formData.organizationName,
+      organization_website: formData.websiteUrl,
+      organization_type: formData.organizationType,
+      organization_taxId: formData.taxId,
+      organization_address: formData.address,
+      contactPerson_name: formData.contactFullName,
+      contactPerson_email: formData.contactEmail,
+      contactPerson_phone: formData.contactPhone,
+      cause_title: formData.causeTitle,
+      cause_description: formData.longDescription,
+      cause_mission: formData.missionStatement,
+      title: formData.campaignName,
+      address: formData.address,
+      description: formData.shortDescription,
+      donor_name: formData.seedDonorName,
+      targetAmount: targetAmount,
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+      dafPartner: formData.dafPartner,
+      internalTrackingId: formData.internalTrackingId,
+      campaignStatus: formData.campaignStatus,
+    };
+
+    console.log("Final campaign data:", campaignData);
+
+    const formDataToSend = new FormData();
+    formDataToSend.append("data", JSON.stringify(campaignData));
+
+    if (selectedImage) {
+      formDataToSend.append("image", selectedImage);
+    }
+
+    return { formData: formDataToSend, id: formData.id };
+  };
+
+  const handleSave = async () => {
+    if (!formData) return;
+
+    setIsSaving(true);
+    try {
+      const preparedData = prepareFormData();
+      console.log("Prepared data:", preparedData);
+      if (!preparedData) return;
+
+      const response = await updateCampaign({
+        data: preparedData.formData,
+        id: preparedData.id
+      }).unwrap();
+
+      toast.success(response.message || "Campaign updated successfully!");
+
+      if (onSuccess) {
+        onSuccess();
+      }
+
+      onClose();
+    } catch (error: any) {
+      console.error('Error updating campaign:', error);
+      toast.error(error?.data?.message || "Failed to update campaign. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (!formData) return null;
@@ -115,7 +228,7 @@ function CampaignViewEditModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
         showCloseButton={false}
-        className="min-w-6xl max-w-6xl max-h-[70vh] overflow-y-auto p-0"
+        className="min-w-6xl max-w-6xl max-h-[80vh] overflow-y-auto p-0"
       >
         {/* Header */}
         <div className="sticky top-0 bg-white z-10 border-b p-6 pb-4">
@@ -127,7 +240,7 @@ function CampaignViewEditModal({
                   {formData.campaignName}
                 </DialogTitle>
                 <DialogDescription className="text-base text-gray-600 mt-1">
-                  Campaign Detailed View
+                  {isEditMode ? "Edit Campaign" : "Campaign Detailed View"}
                 </DialogDescription>
               </div>
             </div>
@@ -136,6 +249,7 @@ function CampaignViewEditModal({
               size="sm"
               onClick={onClose}
               className="h-8 w-8 p-0 hover:bg-gray-100 rounded-full"
+              disabled={isSaving}
             >
               <X className="h-5 w-5 text-gray-600" />
             </Button>
@@ -166,9 +280,9 @@ function CampaignViewEditModal({
                           className="object-cover"
                           unoptimized
                         />
-                      ) : formData.campaignImage ? (
+                      ) : formData.cause_image ? (
                         <Image
-                          src={formData.campaignImage}
+                          src={baseURL + formData.cause_image}
                           alt="Campaign"
                           fill
                           className="object-cover"
@@ -186,6 +300,7 @@ function CampaignViewEditModal({
                         accept="image/*"
                         onChange={handleImageChange}
                         className="mt-2"
+                        disabled={isSaving}
                       />
                     )}
                   </div>
@@ -200,6 +315,7 @@ function CampaignViewEditModal({
                           handleInputChange("causeTitle", e.target.value)
                         }
                         className="mt-1 border-gray-300"
+                        disabled={isSaving}
                       />
                     ) : (
                       <p className="mt-1 text-gray-900">
@@ -218,6 +334,7 @@ function CampaignViewEditModal({
                           handleInputChange("longDescription", e.target.value)
                         }
                         className="mt-1 border-gray-300 min-h-[100px]"
+                        disabled={isSaving}
                       />
                     ) : (
                       <p className="mt-1 text-gray-900 whitespace-pre-wrap">
@@ -236,6 +353,7 @@ function CampaignViewEditModal({
                           handleInputChange("missionStatement", e.target.value)
                         }
                         className="mt-1 border-gray-300 min-h-[80px]"
+                        disabled={isSaving}
                       />
                     ) : (
                       <p className="mt-1 text-gray-900 whitespace-pre-wrap">
@@ -263,6 +381,7 @@ function CampaignViewEditModal({
                           handleInputChange("campaignName", e.target.value)
                         }
                         className="mt-1 border-gray-300"
+                        disabled={isSaving}
                       />
                     ) : (
                       <p className="mt-1 text-gray-900">
@@ -275,12 +394,13 @@ function CampaignViewEditModal({
                       Short Description:
                     </Label>
                     {isEditMode ? (
-                      <Input
+                      <Textarea
                         value={formData.shortDescription || ""}
                         onChange={(e) =>
                           handleInputChange("shortDescription", e.target.value)
                         }
-                        className="mt-1 border-gray-300"
+                        className="mt-1 border-gray-300 min-h-[80px]"
+                        disabled={isSaving}
                       />
                     ) : (
                       <p className="mt-1 text-gray-900">
@@ -299,6 +419,7 @@ function CampaignViewEditModal({
                           handleInputChange("seedDonorName", e.target.value)
                         }
                         className="mt-1 border-gray-300"
+                        disabled={isSaving}
                       />
                     ) : (
                       <p className="mt-1 text-gray-900">
@@ -314,12 +435,10 @@ function CampaignViewEditModal({
                       <Input
                         value={formData.seedDonationAmount}
                         onChange={(e) =>
-                          handleInputChange(
-                            "seedDonationAmount",
-                            e.target.value
-                          )
+                          handleInputChange("targetAmount", parseFloat(e.target.value.replace(/[^0-9.-]+/g, "")) || 0)
                         }
                         className="mt-1 border-gray-300"
+                        disabled={isSaving}
                       />
                     ) : (
                       <p className="mt-1 text-gray-900">
@@ -327,26 +446,69 @@ function CampaignViewEditModal({
                       </p>
                     )}
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-gray-700 font-medium">
+                        Start Date:
+                      </Label>
+                      {isEditMode ? (
+                        <Input
+                          type="date"
+                          value={formData.startDate}
+                          onChange={(e) =>
+                            handleInputChange("startDate", e.target.value)
+                          }
+                          className="mt-1 border-gray-300"
+                          disabled={isSaving}
+                        />
+                      ) : (
+                        <p className="mt-1 text-gray-900">
+                          {new Date(formData.startDate).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <Label className="text-gray-700 font-medium">
+                        End Date:
+                      </Label>
+                      {isEditMode ? (
+                        <Input
+                          type="date"
+                          value={formData.endDate}
+                          onChange={(e) =>
+                            handleInputChange("endDate", e.target.value)
+                          }
+                          className="mt-1 border-gray-300"
+                          disabled={isSaving}
+                        />
+                      ) : (
+                        <p className="mt-1 text-gray-900">
+                          {new Date(formData.endDate).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                   <div>
                     <Label className="text-gray-700 font-medium">
-                      Start & End Date:
+                      Campaign Status:
                     </Label>
                     {isEditMode ? (
-                      <Input
-                        value={`${formData.startDate} - ${formData.endDate}`}
-                        onChange={(e) => {
-                          const dates = e.target.value.split(" - ");
-                          if (dates.length === 2) {
-                            handleInputChange("startDate", dates[0]);
-                            handleInputChange("endDate", dates[1]);
-                          }
-                        }}
-                        className="mt-1 border-gray-300"
-                        placeholder="Oct 1, 2023 - Dec 31, 2023"
-                      />
+                      <select
+                        value={formData.campaignStatus || "draft"}
+                        onChange={(e) =>
+                          handleInputChange("campaignStatus", e.target.value)
+                        }
+                        className="mt-1 w-full p-2 border border-gray-300 rounded-md"
+                        disabled={isSaving}
+                      >
+                        <option value="draft">Draft</option>
+                        <option value="active">Active</option>
+                        <option value="upcoming">Upcoming</option>
+                        <option value="completed">Completed</option>
+                      </select>
                     ) : (
                       <p className="mt-1 text-gray-900">
-                        {formData.startDate} - {formData.endDate}
+                        {formData.campaignStatus?.charAt(0).toUpperCase() + formData.campaignStatus?.slice(1)}
                       </p>
                     )}
                   </div>
@@ -373,6 +535,7 @@ function CampaignViewEditModal({
                           handleInputChange("contactFullName", e.target.value)
                         }
                         className="mt-1 border-gray-300"
+                        disabled={isSaving}
                       />
                     ) : (
                       <p className="mt-1 text-gray-900">
@@ -382,24 +545,8 @@ function CampaignViewEditModal({
                   </div>
                   <div>
                     <Label className="text-gray-700 font-medium">
-                      Title / Role:
+                      Email:
                     </Label>
-                    {isEditMode ? (
-                      <Input
-                        value={formData.contactTitle || ""}
-                        onChange={(e) =>
-                          handleInputChange("contactTitle", e.target.value)
-                        }
-                        className="mt-1 border-gray-300"
-                      />
-                    ) : (
-                      <p className="mt-1 text-gray-900">
-                        {formData.contactTitle}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label className="text-gray-700 font-medium">Email:</Label>
                     {isEditMode ? (
                       <Input
                         type="email"
@@ -408,6 +555,7 @@ function CampaignViewEditModal({
                           handleInputChange("contactEmail", e.target.value)
                         }
                         className="mt-1 border-gray-300"
+                        disabled={isSaving}
                       />
                     ) : (
                       <p className="mt-1 text-gray-900">
@@ -426,6 +574,7 @@ function CampaignViewEditModal({
                           handleInputChange("contactPhone", e.target.value)
                         }
                         className="mt-1 border-gray-300"
+                        disabled={isSaving}
                       />
                     ) : (
                       <p className="mt-1 text-gray-900">
@@ -453,6 +602,7 @@ function CampaignViewEditModal({
                           handleInputChange("dafPartner", e.target.value)
                         }
                         className="mt-1 border-gray-300"
+                        disabled={isSaving}
                       />
                     ) : (
                       <p className="mt-1 text-gray-900">
@@ -474,6 +624,7 @@ function CampaignViewEditModal({
                           )
                         }
                         className="mt-1 border-gray-300"
+                        disabled={isSaving}
                       />
                     ) : (
                       <p className="mt-1 text-gray-900">
@@ -501,6 +652,7 @@ function CampaignViewEditModal({
                           handleInputChange("organizationName", e.target.value)
                         }
                         className="mt-1 border-gray-300"
+                        disabled={isSaving}
                       />
                     ) : (
                       <p className="mt-1 text-gray-900">
@@ -519,6 +671,7 @@ function CampaignViewEditModal({
                           handleInputChange("taxId", e.target.value)
                         }
                         className="mt-1 border-gray-300"
+                        disabled={isSaving}
                       />
                     ) : (
                       <p className="mt-1 text-gray-900">{formData.taxId}</p>
@@ -535,6 +688,7 @@ function CampaignViewEditModal({
                           handleInputChange("organizationType", e.target.value)
                         }
                         className="mt-1 border-gray-300"
+                        disabled={isSaving}
                       />
                     ) : (
                       <p className="mt-1 text-gray-900">
@@ -553,6 +707,7 @@ function CampaignViewEditModal({
                           handleInputChange("websiteUrl", e.target.value)
                         }
                         className="mt-1 border-gray-300"
+                        disabled={isSaving}
                       />
                     ) : (
                       <p className="mt-1 text-gray-900">
@@ -571,6 +726,7 @@ function CampaignViewEditModal({
                           handleInputChange("address", e.target.value)
                         }
                         className="mt-1 border-gray-300 min-h-[80px]"
+                        disabled={isSaving}
                       />
                     ) : (
                       <p className="mt-1 text-gray-900 whitespace-pre-wrap">
@@ -588,9 +744,17 @@ function CampaignViewEditModal({
             <div className="flex justify-center pt-4 border-t">
               <Button
                 onClick={handleSave}
-                className="px-8 py-6 bg-purple-600 hover:bg-purple-700 text-white font-bold text-lg rounded-lg"
+                disabled={isSaving}
+                className="px-8 py-6 bg-purple-600 hover:bg-purple-700 text-white font-bold text-lg rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Save All Changes
+                {isSaving ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    Saving...
+                  </div>
+                ) : (
+                  "Save All Changes"
+                )}
               </Button>
             </div>
           )}

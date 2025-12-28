@@ -1,11 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import { IoIosNotificationsOutline } from "react-icons/io";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,17 +9,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "../ui/badge";
-import { useRouter } from "next/navigation";
-import { clearUser } from "@/redux/slices/authSlice";
-import { useAppDispatch } from "@/redux/hooks";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useSocketNotifications } from "@/hooks/useSocketNotifications";
+import useToast from "@/hooks/useToast";
 import {
   useGetAdminByAuthIdQuery,
   useLogoutMutation,
 } from "@/redux/Apis/authApi";
-import useToast from "@/hooks/useToast";
+import { useAppDispatch } from "@/redux/hooks";
+import { clearUser } from "@/redux/slices/authSlice";
 import getAuthIdFromToken from "@/utils/jwtDecode";
-import { useSocketNotifications } from "@/hooks/useSocketNotifications";
+import { ChevronDown } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { IoIosNotificationsOutline } from "react-icons/io";
+import { Badge } from "../ui/badge";
 export default function Header() {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -95,10 +95,10 @@ export default function Header() {
                     <AvatarFallback>
                       {admin?.name
                         ? admin.name
-                            .split(" ")
-                            .map((n: string) => n[0])
-                            .join("")
-                            .toUpperCase()
+                          .split(" ")
+                          .map((n: string) => n[0])
+                          .join("")
+                          .toUpperCase()
                         : "U"}
                     </AvatarFallback>
                   </Avatar>

@@ -1,16 +1,18 @@
 "use client";
-import React, { useState } from "react";
+import { Calendar, Send, X } from "lucide-react";
+import { useState } from "react";
+import toast from 'react-hot-toast';
+import { useSendMessageMutation } from '../../features/donations/donationsApi';
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
 import {
   Dialog,
-  DialogTitle,
-  DialogHeader,
   DialogContent,
   DialogDescription,
+  DialogHeader,
+  DialogTitle,
 } from "../ui/dialog";
-import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
 import { Textarea } from "../ui/textarea";
-import { Calendar, Send, X } from "lucide-react";
 
 export interface DonationData {
   id: string;
@@ -22,6 +24,10 @@ export interface DonationData {
   paymentStatus: "Pending" | "Successful" | "Failed";
   paymentMethod?: string;
   transactionId?: string;
+  donorId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  amount?: number;
 }
 
 interface DonationDetailsModalProps {
@@ -30,14 +36,18 @@ interface DonationDetailsModalProps {
   donation: DonationData | null;
 }
 
-function DonationDetailsModal({
-  isOpen,
-  onClose,
-  donation,
-}: DonationDetailsModalProps) {
-  const [message, setMessage] = useState(
-    "Hello Abdur Rahman,\nThanks to your support, we've received $213.00 donations, moving us 32% closer to our goal!\nYour contribution is inspiring change and making a real impact. Let's keep the momentum going together!\nThank you for being part of this journey.\nBest,\nPassitAlogn Team!"
-  );
+function DonationDetailsModal({ isOpen, onClose, donation }: DonationDetailsModalProps) {
+  const [message, setMessage] = useState("");
+  const [sendMessage, { isLoading }] = useSendMessageMutation();
+
+  // Initialize message when donation data is available
+  useState(() => {
+    if (donation) {
+      setMessage(
+        `Hello Donor,\nThanks to your support, we've received ${donation?.donationAmount} donation!\nYour contribution is inspiring change and making a real impact. Let's keep the momentum going together!\nThank you for being part of this journey.\nBest,\nPassitAlong Team!`
+      );
+    }
+  });
 
   if (!donation) return null;
 
@@ -69,9 +79,19 @@ function DonationDetailsModal({
     }
   };
 
-  const handleSend = () => {
-    console.log("Sending message:", message);
-    // Here you would implement the send functionality
+  const handleSend = async () => {
+    try {
+      const response = await sendMessage({
+        id: donation.id,
+        data: { message }
+      }).unwrap();
+
+      toast.success(response.message || "Message sent successfully!");
+      onClose();
+    } catch (error) {
+      console.error("Failed to send message:", error);
+      toast.error(error?.data?.message || "Failed to send message. Please try again.");
+    }
   };
 
   const isSuccessful = donation.paymentStatus === "Successful";
@@ -80,12 +100,12 @@ function DonationDetailsModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
         showCloseButton={false}
-        className="max-w-3xl overflow-y-auto max-h-[90vh]"
+        className="overflow-y-auto max-h-[70vh]"
       >
         {/* Custom Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none bg-red-600 hover:bg-red-700 p-1"
+          className="absolute top-4 right-4 cursor-pointer z-10 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none bg-red-600 hover:bg-red-700 p-1"
         >
           <X className="h-4 w-4 text-white" />
           <span className="sr-only">Close</span>
@@ -96,7 +116,7 @@ function DonationDetailsModal({
             Donation Details
           </DialogTitle>
           <DialogDescription className="text-base text-gray-600">
-            Viewing donation {donation.id}
+            Viewing donation {donation.id.slice(-6)}
           </DialogDescription>
         </DialogHeader>
 
@@ -128,9 +148,17 @@ function DonationDetailsModal({
             <div>
               <label className="text-sm text-gray-500">Transaction ID</label>
               <p className="text-base font-bold text-gray-900 mt-1">
-                {donation.transactionId || "ch_2334knkdhNl"}
+                {donation.transactionId || "N/A"}
               </p>
             </div>
+            {donation.donorId && (
+              <div>
+                <label className="text-sm text-gray-500">Donor ID</label>
+                <p className="text-base font-bold text-gray-900 mt-1">
+                  {donation.donorId}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Right Column */}
@@ -152,7 +180,7 @@ function DonationDetailsModal({
             <div>
               <label className="text-sm text-gray-500">Payment Method</label>
               <p className="text-base font-bold text-gray-900 mt-1">
-                {donation.paymentMethod || "Visa****4231"}
+                {donation.paymentMethod || "N/A"}
               </p>
             </div>
             <div>
@@ -161,8 +189,41 @@ function DonationDetailsModal({
                 {getStatusBadge(donation.paymentStatus)}
               </div>
             </div>
+            {donation.campaignId && (
+              <div>
+                <label className="text-sm text-gray-500">Campaign ID</label>
+                <p className="text-base font-bold text-gray-900 mt-1">
+                  {donation.campaignId}
+                </p>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Additional Information */}
+        {(donation.createdAt || donation.updatedAt) && (
+          <div className="border-t pt-6">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Additional Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {donation.createdAt && (
+                <div>
+                  <label className="text-sm text-gray-500">Created At</label>
+                  <p className="text-base text-gray-900 mt-1">
+                    {new Date(donation.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              )}
+              {donation.updatedAt && (
+                <div>
+                  <label className="text-sm text-gray-500">Updated At</label>
+                  <p className="text-base text-gray-900 mt-1">
+                    {new Date(donation.updatedAt).toLocaleString()}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Update Message Section - only for successful payments */}
         {isSuccessful && (
@@ -179,10 +240,20 @@ function DonationDetailsModal({
             <div className="flex justify-end mt-4">
               <Button
                 onClick={handleSend}
-                className="bg-purple-600 hover:bg-purple-700 text-white"
+                disabled={isLoading}
+                className="bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
               >
-                <Send className="h-4 w-4 mr-2" />
-                Send
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    Send
+                  </>
+                )}
               </Button>
             </div>
           </div>

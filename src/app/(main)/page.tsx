@@ -1,23 +1,22 @@
 "use client";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAppSelector } from "@/redux/hooks";
 import AnalyticsLayout from "@/components/analytics/AnalyticsLayout";
+import { useAppSelector } from "@/redux/hooks";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAppSelector((state) => state.auth);
 
-  useEffect(() => {
-    // If not loading and not authenticated, redirect to login
-    if (!isLoading && !isAuthenticated) {
-      // Check localStorage as fallback
-      const token = localStorage.getItem("accessToken");
-      if (!token) {
-        router.replace("/auth/login");
-      }
-    }
-  }, [isAuthenticated, isLoading, router]);
+  // useEffect(() => {
+  //   // If not loading and not authenticated, redirect to login
+  //   if (!isLoading && !isAuthenticated) {
+  //     // Check localStorage as fallback
+  //     const token = localStorage.getItem("accessToken");
+  //     if (!token) {
+  //       router.replace("/auth/login");
+  //     }
+  //   }
+  // }, [isAuthenticated, isLoading, router]);
 
   // Show loading while checking authentication
   if (isLoading) {
@@ -29,9 +28,9 @@ export default function Home() {
   }
 
   // If not authenticated, don't render anything (redirect is happening)
-  if (!isAuthenticated) {
-    return null;
-  }
+  // if (!isAuthenticated) {
+  //   return null;
+  // }
 
   return (
     <div className="">

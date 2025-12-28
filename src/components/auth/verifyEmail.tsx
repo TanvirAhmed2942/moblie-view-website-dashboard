@@ -1,5 +1,4 @@
 "use client";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -8,39 +7,42 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { ArrowRight } from "lucide-react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import toast from 'react-hot-toast';
+import { useResendOTPMutation, useVerifyOTPMutation } from '../../features/auth/authApi';
 export default function VerifyEmail() {
   const [otp, setOtp] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isResending, setIsResending] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const email = searchParams.get('email');
+  const [verifyOTP, { isLoading: isVerifyLoading }] = useVerifyOTPMutation();
+  const [resendOTP, { isLoading: isLoadingResend }] = useResendOTPMutation();
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    // Simple form submission - just log the data
-    console.log("Verification code:", otp);
-
-    // Simulate loading and redirect
-    setTimeout(() => {
-      setIsLoading(false);
-      router.push("/auth/reset-password");
-    }, 1000);
+    try {
+      const response = await verifyOTP({ oneTimeCode: parseInt(otp.trim()), email: email, "isForLogin": false }).unwrap();
+      console.log(response);
+      // On success, navigate to reset password page
+      toast.success(response.message || "OTP verified successfully!");
+      router.push(`/auth/reset-password?token=${response.data.verifyToken}`);
+    } catch (error) {
+      console.error("OTP verification failed:", error);
+      toast.error(error.data.message || "OTP verification failed. Please try again.");
+    }
   };
 
-  const handleResendOtp = () => {
-    setIsResending(true);
-
-    // Simple resend - just log
-    console.log("Resending verification code...");
-
-    // Simulate loading
-    setTimeout(() => {
-      setIsResending(false);
-      setOtp(""); // Clear OTP input
-    }, 1000);
+  const handleResendOtp = async () => {
+    try {
+      const response = await resendOTP({ email: email }).unwrap();
+      console.log(response);
+      toast.success(response.message || "OTP resent successfully!");
+    } catch (error) {
+      console.error("Resend OTP failed:", error);
+      toast.error(error.data.message || "Resend OTP failed. Please try again.");
+    }
   };
 
   return (
@@ -89,10 +91,10 @@ export default function VerifyEmail() {
 
           <Button
             type="submit"
-            disabled={isLoading || otp.length !== 4}
+            disabled={isVerifyLoading || otp.length !== 4}
             className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl py-6"
           >
-            {isLoading ? "Verifying..." : "Verified"}
+            {isVerifyLoading ? "Verifying..." : "Verified"}
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
 
@@ -101,10 +103,10 @@ export default function VerifyEmail() {
             <button
               type="button"
               onClick={handleResendOtp}
-              disabled={isResending}
+              disabled={isLoadingResend}
               className="text-red-500 hover:text-red-600 cursor-pointer underline disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isResending ? "Sending..." : "Resend"}
+              {isLoadingResend ? "Sending..." : "Resend"}
             </button>
           </p>
         </form>

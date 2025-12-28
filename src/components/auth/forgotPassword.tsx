@@ -1,18 +1,20 @@
 "use client";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowRight } from "lucide-react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from 'next/link';
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import toast from 'react-hot-toast';
+import { useEmailForgotPasswordMutation } from '../../features/auth/authApi';
 import { forgetPasswordFormType } from "./auth.types";
 
 export default function ForgotPassword() {
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const [forgotPassword, { isLoading: isLoadingEmail }] = useEmailForgotPasswordMutation();
 
   const {
     register,
@@ -24,17 +26,17 @@ export default function ForgotPassword() {
     },
   });
 
-  const onSubmit = (data: forgetPasswordFormType) => {
-    setIsLoading(true);
+  const onSubmit = async (data: forgetPasswordFormType) => {
+    try {
+      const response = await forgotPassword({ email: data.email.trim() }).unwrap();
+      console.log("Forgot password response:", response);
+      router.push(`/auth/verify-email?email=${data.email.trim()}`);
+      toast.success(response.message || 'Verification code sent to your email');
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      toast.error(error?.data?.message || 'Failed to send verification code. Please try again.');
+    }
 
-    // Simple form submission - just log the data
-    console.log("Forgot password email:", data.email.trim());
-
-    // Simulate loading and redirect
-    setTimeout(() => {
-      setIsLoading(false);
-      router.push("/auth/verify-email");
-    }, 1000);
   };
 
   return (
@@ -66,7 +68,7 @@ export default function ForgotPassword() {
             <Input
               id="email"
               type="email"
-              placeholder=""
+              placeholder="Email"
               {...register("email", {
                 required: "Email is required",
                 pattern: {
@@ -83,13 +85,24 @@ export default function ForgotPassword() {
 
           <Button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoadingEmail}
             className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl py-6"
           >
-            {isLoading ? "Sending..." : "Next"}
+            {isLoadingEmail ? "Sending..." : "Next"}
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
+
+          <div className="text-center text-sm text-gray-600 mt-4">
+            Remember your password?{' '}
+            <Link
+              href="/auth/login"
+              className="text-purple-600 hover:text-purple-600 font-medium"
+            >
+              Back to Login
+            </Link>
+          </div>
         </form>
+
       </CardContent>
     </Card>
   );

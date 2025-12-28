@@ -1,13 +1,9 @@
 "use client";
-import React, { useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../ui/table";
+import { ArrowUp, Eye, Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useGetDonationsQuery, useGetSingleDonationsDetailsQuery } from "../../features/donations/donationsApi";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import {
   Select,
@@ -16,142 +12,302 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { Badge } from "../ui/badge";
-import { Button } from "../ui/button";
-import { Search, Eye, ArrowUp, ArrowDownToLine } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../ui/table";
 import DonationDetailsModal, { DonationData } from "./DonationDetailsModal";
 
-interface Donation {
-  id: string;
-  campaignId: string;
-  campaignName: string;
-  donorPhoneNumber: string;
-  donationAmount: string;
-  date: string;
-  paymentStatus: "Pending" | "Successful" | "Failed";
-  paymentMethod?: string;
-  transactionId?: string;
+// API Response Types
+interface Donor {
+  _id: string;
+  name: string;
+  contact: string;
+  image: string;
+  userLevel: string;
+  createdAt: string;
 }
 
-const donations: Donation[] = [
-  {
-    id: "#124524",
-    campaignId: "#1253",
-    campaignName: "Rise Beyond Trafficking",
-    donorPhoneNumber: "+097***543",
-    donationAmount: "$2342.00",
-    date: "12-02-2025",
-    paymentStatus: "Pending",
-    paymentMethod: "Visa****4231",
-    transactionId: "ch_2334knkdhNl",
-  },
-  {
-    id: "#124524",
-    campaignId: "#1253",
-    campaignName: "Rise Beyond Trafficking",
-    donorPhoneNumber: "+097***543",
-    donationAmount: "$2020.00",
-    date: "02-01-2015",
-    paymentStatus: "Successful",
-    paymentMethod: "Visa****4231",
-    transactionId: "ch_2334knkdhNl",
-  },
-  {
-    id: "#124524",
-    campaignId: "#1253",
-    campaignName: "Rise Beyond Trafficking",
-    donorPhoneNumber: "+097***543",
-    donationAmount: "$1200.00",
-    date: "02-11-2022",
-    paymentStatus: "Successful",
-    paymentMethod: "Visa****4231",
-    transactionId: "ch_2334knkdhNl",
-  },
-  {
-    id: "#124524",
-    campaignId: "#1253",
-    campaignName: "Rise Beyond Trafficking",
-    donorPhoneNumber: "+097***543",
-    donationAmount: "$20900.00",
-    date: "09-12-2021",
-    paymentStatus: "Failed",
-    paymentMethod: "Visa****4231",
-    transactionId: "ch_2334knkdhNl",
-  },
-  {
-    id: "#124524",
-    campaignId: "#1253",
-    campaignName: "Rise Beyond Trafficking",
-    donorPhoneNumber: "+097***543",
-    donationAmount: "$2342.00",
-    date: "12-02-2025",
-    paymentStatus: "Pending",
-    paymentMethod: "Visa****4231",
-    transactionId: "ch_2334knkdhNl",
-  },
-];
+interface Campaign {
+  _id: string;
+  title: string;
+}
+
+interface Transaction {
+  _id: string;
+  donorId: Donor;
+  donorPhone: string;
+  paymentMethod: string;
+  campaignTitle: string;
+  transactionId: string;
+  amountPaid: number;
+  campaignId: Campaign;
+  paymentStatus: "pending" | "completed" | "failed";
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ApiResponse {
+  success: boolean;
+  message: string;
+  statusCode: number;
+  data: {
+    meta: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPage: number;
+    };
+    result: Transaction[];
+  };
+}
+
+// Helper function to format date
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+};
+
+// Helper function to mask phone number
+const maskPhoneNumber = (phone: string) => {
+  if (!phone || phone.length <= 4) return phone || "N/A";
+  const lastFour = phone.slice(-4);
+  return `+***${lastFour}`;
+};
+
+// Format payment method
+const formatPaymentMethod = (method: string) => {
+  if (!method) return "Unknown";
+  return method.charAt(0).toUpperCase() + method.slice(1);
+};
 
 function DonationTable() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedDonation, setSelectedDonation] = useState<DonationData | null>(
-    null
+  const [selectedDonationId, setSelectedDonationId] = useState<string | null>(null);
+
+  // Fetch donations with pagination
+  const { data: donationsData, isLoading, isError, refetch } = useGetDonationsQuery(currentPage);
+
+  // Fetch single donation details when selected
+  const { data: singleDonationData, isLoading: isLoadingDetails } = useGetSingleDonationsDetailsQuery(
+    selectedDonationId!,
+    { skip: !selectedDonationId }
   );
 
-  const handleViewDetails = (donation: Donation) => {
-    setSelectedDonation(donation);
-    setIsModalOpen(true);
+  useEffect(() => {
+    refetch();
+  }, [currentPage, refetch]);
+
+  const handleViewDetails = (donationId: string) => {
+    setSelectedDonationId(donationId);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setSelectedDonation(null);
+    setSelectedDonationId(null);
   };
 
-  const filteredDonations = donations.filter((donation) => {
-    const matchesSearch =
-      donation.campaignName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      donation.campaignId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      donation.donorPhoneNumber
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      donation.id.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus =
-      statusFilter === "all" || donation.paymentStatus === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  // Open modal when single donation data is loaded
+  useEffect(() => {
+    if (singleDonationData?.data && selectedDonationId) {
+      setIsModalOpen(true);
+    }
+  }, [singleDonationData, selectedDonationId]);
 
-  const getStatusBadge = (status: Donation["paymentStatus"]) => {
-    switch (status) {
-      case "Pending":
+  // Convert API response to DonationData for modal
+  const getDonationDataForModal = (): DonationData | null => {
+    if (!singleDonationData?.data) return null;
+
+    const transaction = singleDonationData.data as Transaction;
+    return {
+      id: transaction._id,
+      campaignId: transaction.campaignId._id,
+      campaignName: transaction.campaignTitle || transaction.campaignId.title,
+      donorPhoneNumber: transaction.donorPhone,
+      donationAmount: `$${transaction.amountPaid}`,
+      date: formatDate(transaction.createdAt),
+      paymentStatus: transaction.paymentStatus === 'completed' ? 'Successful' :
+        transaction.paymentStatus === 'pending' ? 'Pending' : 'Failed',
+      paymentMethod: formatPaymentMethod(transaction.paymentMethod),
+      transactionId: transaction.transactionId,
+      donorId: transaction.donorId._id,
+      createdAt: transaction.createdAt,
+      updatedAt: transaction.updatedAt,
+      amount: transaction.amountPaid
+    };
+  };
+
+  // Get filtered donations
+  const getFilteredDonations = () => {
+    if (!donationsData?.data?.result) return [];
+
+    const transactions = donationsData.data.result;
+
+    return transactions.filter((donation) => {
+      const matchesSearch =
+        donation.campaignId?._id?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
+        donation.campaignTitle?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
+        donation.donorPhone?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
+        donation.transactionId?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
+        donation._id?.toLowerCase()?.includes(searchQuery.toLowerCase());
+
+      const matchesStatus =
+        statusFilter === "all" ||
+        donation.paymentStatus.toLowerCase() === statusFilter.toLowerCase();
+
+      return matchesSearch && matchesStatus;
+    });
+  };
+
+  const filteredDonations = getFilteredDonations();
+  const meta = donationsData?.data?.meta || { total: 0, page: 1, limit: 10, totalPage: 1 };
+
+  // Calculate pagination values
+  const totalFiltered = filteredDonations.length;
+  const showingStart = totalFiltered > 0 ? ((currentPage - 1) * meta.limit) + 1 : 0;
+  const showingEnd = Math.min(currentPage * meta.limit, meta.total);
+  const totalPages = meta.totalPage;
+
+  const getStatusBadge = (status: string) => {
+    const statusText = status.charAt(0).toUpperCase() + status.slice(1);
+
+    switch (status.toLowerCase()) {
+      case "pending":
         return (
           <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 hover:bg-yellow-100">
-            Pending
+            {statusText}
           </Badge>
         );
-      case "Successful":
+      case "completed":
         return (
           <Badge className="bg-green-100 text-green-700 border-green-200 hover:bg-green-100">
-            Successful
+            {statusText}
           </Badge>
         );
-      case "Failed":
+      case "failed":
         return (
           <Badge className="bg-red-100 text-red-700 border-red-200 hover:bg-red-100">
-            Failed
+            {statusText}
           </Badge>
         );
       default:
-        return null;
+        return (
+          <Badge className="bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-100">
+            {statusText}
+          </Badge>
+        );
     }
   };
 
   const handleExport = () => {
     console.log("Exporting donations...");
-    // Here you would implement the export functionality
+    // Implement export functionality
   };
+
+  // Generate page buttons
+  const renderPageButtons = () => {
+    const buttons = [];
+
+    if (totalPages === 0) return buttons;
+
+    // Always show first page
+    buttons.push(
+      <Button
+        key={1}
+        variant={currentPage === 1 ? "default" : "ghost"}
+        className={`px-4 py-2 rounded-lg ${currentPage === 1
+          ? "bg-purple-600 hover:bg-purple-700 text-white"
+          : "text-gray-700 hover:bg-gray-100 bg-white border border-gray-300"
+          }`}
+        onClick={() => setCurrentPage(1)}
+      >
+        1
+      </Button>
+    );
+
+    // Show pages around current page
+    const startPage = Math.max(2, currentPage - 1);
+    const endPage = Math.min(totalPages - 1, currentPage + 1);
+
+    if (startPage > 2) {
+      buttons.push(<span key="ellipsis1" className="px-2 text-gray-700">...</span>);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      if (i !== 1 && i !== totalPages) {
+        buttons.push(
+          <Button
+            key={i}
+            variant={currentPage === i ? "default" : "ghost"}
+            className={`px-4 py-2 rounded-lg ${currentPage === i
+              ? "bg-purple-600 hover:bg-purple-700 text-white"
+              : "text-gray-700 hover:bg-gray-100 bg-white border border-gray-300"
+              }`}
+            onClick={() => setCurrentPage(i)}
+          >
+            {i}
+          </Button>
+        );
+      }
+    }
+
+    if (endPage < totalPages - 1) {
+      buttons.push(<span key="ellipsis2" className="px-2 text-gray-700">...</span>);
+    }
+
+    // Always show last page if there is more than 1 page
+    if (totalPages > 1) {
+      buttons.push(
+        <Button
+          key={totalPages}
+          variant={currentPage === totalPages ? "default" : "ghost"}
+          className={`px-4 py-2 rounded-lg ${currentPage === totalPages
+            ? "bg-purple-600 hover:bg-purple-700 text-white"
+            : "text-gray-700 hover:bg-gray-100 bg-white border border-gray-300"
+            }`}
+          onClick={() => setCurrentPage(totalPages)}
+        >
+          {totalPages}
+        </Button>
+      );
+    }
+
+    return buttons;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading donations...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-600">Failed to load donations</p>
+        <Button onClick={() => refetch()} className="mt-4">
+          Retry
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -162,7 +318,7 @@ function DonationTable() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Q Search..."
+              placeholder="Search by ID, phone, or transaction..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 w-64 border-gray-300"
@@ -174,9 +330,9 @@ function DonationTable() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Status: All</SelectItem>
-              <SelectItem value="Pending">Status: Pending</SelectItem>
-              <SelectItem value="Successful">Status: Successful</SelectItem>
-              <SelectItem value="Failed">Status: Failed</SelectItem>
+              <SelectItem value="pending">Status: Pending</SelectItem>
+              <SelectItem value="completed">Status: Completed</SelectItem>
+              <SelectItem value="failed">Status: Failed</SelectItem>
             </SelectContent>
           </Select>
           <Button
@@ -199,9 +355,6 @@ function DonationTable() {
                 Campaign ID
               </TableHead>
               <TableHead className="text-gray-700 font-semibold">
-                Campaign Name
-              </TableHead>
-              <TableHead className="text-gray-700 font-semibold">
                 Donor Phone Number
               </TableHead>
               <TableHead className="text-gray-700 font-semibold">
@@ -209,6 +362,9 @@ function DonationTable() {
               </TableHead>
               <TableHead className="text-gray-700 font-semibold">
                 Date
+              </TableHead>
+              <TableHead className="text-gray-700 font-semibold">
+                Payment Method
               </TableHead>
               <TableHead className="text-gray-700 font-semibold">
                 Payment Status
@@ -219,108 +375,89 @@ function DonationTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredDonations.map((donation, index) => (
-              <TableRow
-                key={`${donation.id}-${index}`}
-                className="bg-white hover:bg-gray-50"
-              >
-                <TableCell className="font-medium">{donation.id}</TableCell>
-                <TableCell>{donation.campaignId}</TableCell>
-                <TableCell>{donation.campaignName}</TableCell>
-                <TableCell>{donation.donorPhoneNumber}</TableCell>
-                <TableCell>{donation.donationAmount}</TableCell>
-                <TableCell>{donation.date}</TableCell>
-                <TableCell>{getStatusBadge(donation.paymentStatus)}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 bg-purple-600 hover:bg-purple-700 rounded-full"
-                      onClick={() => handleViewDetails(donation)}
-                    >
-                      <Eye className="h-4 w-4 text-white" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 bg-green-600 hover:bg-green-700 rounded-full"
-                    >
-                      <ArrowDownToLine className="h-4 w-4 text-white" />
-                    </Button>
-                  </div>
+            {filteredDonations.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                  {donationsData?.data?.result?.length === 0
+                    ? "No donations found"
+                    : "No donations found matching your criteria"}
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              filteredDonations.map((donation) => (
+                <TableRow
+                  key={donation._id}
+                  className="bg-white hover:bg-gray-50"
+                >
+                  <TableCell className="font-medium">
+                    {donation._id.slice(-6)}
+                  </TableCell>
+                  <TableCell>{donation.campaignId._id.slice(-6)}</TableCell>
+                  <TableCell>{maskPhoneNumber(donation.donorPhone)}</TableCell>
+                  <TableCell>${donation.amountPaid}</TableCell>
+                  <TableCell>{formatDate(donation.createdAt)}</TableCell>
+                  <TableCell className="capitalize">
+                    {formatPaymentMethod(donation.paymentMethod)}
+                  </TableCell>
+                  <TableCell>{getStatusBadge(donation.paymentStatus)}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 bg-purple-600 hover:bg-purple-700 rounded-full"
+                        onClick={() => handleViewDetails(donation._id)}
+                        disabled={isLoadingDetails}
+                      >
+                        {isLoadingDetails && selectedDonationId === donation._id ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        ) : (
+                          <Eye className="h-4 w-4 text-white" />
+                        )}
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
 
       {/* Pagination Section */}
-      <div className="flex items-center justify-center gap-2">
-        <Button
-          variant="outline"
-          disabled={currentPage === 1}
-          className="px-4 py-2 border-gray-300 text-gray-700 disabled:opacity-50 rounded-lg"
-        >
-          &lt; Previous
-        </Button>
-        <div className="flex items-center gap-2">
-          <Button
-            variant={currentPage === 1 ? "default" : "ghost"}
-            className={`px-4 py-2 rounded-lg ${
-              currentPage === 1
-                ? "bg-purple-600 hover:bg-purple-700 text-white"
-                : "text-gray-700 hover:bg-gray-100 bg-white border border-gray-300"
-            }`}
-            onClick={() => setCurrentPage(1)}
-          >
-            1
-          </Button>
-          <Button
-            variant="ghost"
-            className="px-4 py-2 text-gray-700 hover:bg-gray-100 bg-white border border-gray-300 rounded-lg"
-            onClick={() => setCurrentPage(2)}
-          >
-            2
-          </Button>
-          <Button
-            variant="ghost"
-            className="px-4 py-2 text-gray-700 hover:bg-gray-100 bg-white border border-gray-300 rounded-lg"
-            onClick={() => setCurrentPage(3)}
-          >
-            3
-          </Button>
-          <Button
-            variant="ghost"
-            className="px-4 py-2 text-gray-700 hover:bg-gray-100 bg-white border border-gray-300 rounded-lg"
-            onClick={() => setCurrentPage(4)}
-          >
-            4
-          </Button>
-          <span className="px-2 text-gray-700">...</span>
-          <Button
-            variant="ghost"
-            className="px-4 py-2 text-gray-700 hover:bg-gray-100 bg-white border border-gray-300 rounded-lg"
-            onClick={() => setCurrentPage(25)}
-          >
-            25
-          </Button>
+      {meta.total > 0 && (
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-600">
+            Showing {showingStart} to {showingEnd} of {meta.total} donations
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(prev => prev - 1)}
+              className="px-4 py-2 border-gray-300 text-gray-700 disabled:opacity-50 rounded-lg"
+            >
+              &lt; Previous
+            </Button>
+            <div className="flex items-center gap-2">
+              {renderPageButtons()}
+            </div>
+            <Button
+              variant="default"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 rounded-lg"
+            >
+              Next &gt;
+            </Button>
+          </div>
         </div>
-        <Button
-          variant="default"
-          disabled={currentPage === 25}
-          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 rounded-lg"
-        >
-          Next &gt;
-        </Button>
-      </div>
+      )}
 
-      {/* Donation Details Modal */}
       <DonationDetailsModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        donation={selectedDonation}
+        donation={getDonationDataForModal()}
       />
     </div>
   );

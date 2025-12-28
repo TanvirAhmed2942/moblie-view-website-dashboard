@@ -1,31 +1,30 @@
 "use client";
-import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff } from "lucide-react";
-import { Checkbox } from "../ui/checkbox";
-import { useRouter } from "next/navigation";
-import { loginFormType } from "./auth.types";
-import { useForm } from "react-hook-form";
-import { useAppDispatch } from "@/redux/hooks";
-import { setUser } from "@/redux/slices/authSlice";
-import { toast } from "sonner";
-import Image from "next/image";
-import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
+import { gsap } from "gsap";
+import { Eye, EyeOff } from "lucide-react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import toast from 'react-hot-toast';
+import { useLoginMutation } from '../../features/auth/authApi';
+import { saveToken } from '../../utils/storage';
+import { Checkbox } from "../ui/checkbox";
+import { loginFormType } from "./auth.types";
 
 export default function Login() {
   const router = useRouter();
-  const dispatch = useAppDispatch();
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
   const subtitleRef = useRef<HTMLParagraphElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const [Login, { isLoading }] = useLoginMutation();
 
   const {
     register,
@@ -124,49 +123,26 @@ export default function Login() {
     { scope: cardRef }
   );
 
-  const onSubmit = (data: loginFormType) => {
-    setIsLoading(true);
-
+  const onSubmit = async (data: loginFormType) => {
     const email = data.email.trim();
     const password = data.password.trim();
 
-    console.log("Login attempt:", { email, password });
-
-    // Simple authentication: any email + password "123456789"
-    if (password === "123456789") {
-      // Create user object
-      const user = {
-        id: "user_" + Date.now(),
-        name: email.split("@")[0], // Use email prefix as name
-        email: email,
-        role: "admin",
-      };
-
-      // Generate simple tokens
-      const accessToken = "token_" + Date.now();
-      const refreshToken = "refresh_" + Date.now();
-
-      // Dispatch to Redux store (this also saves to localStorage)
-      dispatch(
-        setUser({
-          user,
-          accessToken,
-          refreshToken,
-        })
-      );
-
-      toast.success("Login successful! Welcome back.");
-
-      // Redirect to main dashboard
-      setTimeout(() => {
-        setIsLoading(false);
+    try {
+      const result: any = await Login({ email, password }).unwrap();
+      console.log("Login successful:", result);
+      if (result.statusCode === 200) {
         router.push("/");
-      }, 1000);
-    } else {
-      // Authentication failed
-      setIsLoading(false);
-      toast.error("Invalid credentials. Please use password: 123456789");
+        toast.success(result.message || "Login successful!");
+        saveToken(result.data.accessToken);
+      }
+    } catch (error) {
+      console.error("Login failed:", error);
+      toast.error(error?.data?.message || "Login failed. Please try again.");
+
     }
+
+
+
   };
 
   return (

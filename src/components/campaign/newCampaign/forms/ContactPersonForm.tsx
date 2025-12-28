@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import React, { useState } from "react";
 
 interface ContactPersonFormProps {
   onNext: (data: ContactPersonFormData) => void;
@@ -12,10 +12,10 @@ interface ContactPersonFormProps {
 }
 
 export interface ContactPersonFormData {
-  fullName: string;
-  title: string;
-  email: string;
-  phoneNumber: string;
+  contactPerson_name: string;
+  contactPerson_title: string;
+  contactPerson_email: string;
+  contactPerson_phone: string;
 }
 
 function ContactPersonForm({
@@ -24,19 +24,58 @@ function ContactPersonForm({
   initialData,
 }: ContactPersonFormProps) {
   const [formData, setFormData] = useState<ContactPersonFormData>({
-    fullName: initialData?.fullName || "",
-    title: initialData?.title || "",
-    email: initialData?.email || "",
-    phoneNumber: initialData?.phoneNumber || "",
+    contactPerson_name: initialData?.contactPerson_name || "",
+    contactPerson_title: initialData?.contactPerson_title || "",
+    contactPerson_email: initialData?.contactPerson_email || "",
+    contactPerson_phone: initialData?.contactPerson_phone || "",
   });
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleChange = (field: keyof ContactPersonFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+
+    // Clear error for this field when user types
+    if (errors[field]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.contactPerson_name.trim()) {
+      newErrors.contactPerson_name = "Full name is required";
+    }
+
+    if (!formData.contactPerson_title.trim()) {
+      newErrors.contactPerson_title = "Title/Role is required";
+    }
+
+    if (!formData.contactPerson_email.trim()) {
+      newErrors.contactPerson_email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactPerson_email)) {
+      newErrors.contactPerson_email = "Please enter a valid email address";
+    }
+
+    if (!formData.contactPerson_phone.trim()) {
+      newErrors.contactPerson_phone = "Phone number is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onNext(formData);
+
+    if (validateForm()) {
+      onNext(formData);
+    }
   };
 
   return (
@@ -46,64 +85,80 @@ function ContactPersonForm({
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Full Name */}
         <div className="space-y-2">
-          <Label htmlFor="fullName" className="text-gray-700">
+          <Label htmlFor="contactPerson_name" className="text-gray-700">
             Full Name:
+            <span className="text-red-500 ml-1">*</span>
           </Label>
           <Input
-            id="fullName"
-            value={formData.fullName}
-            onChange={(e) => handleChange("fullName", e.target.value)}
+            id="contactPerson_name"
+            value={formData.contactPerson_name}
+            onChange={(e) => handleChange("contactPerson_name", e.target.value)}
             placeholder="Enter your name here..."
-            className="bg-gray-50 border-gray-200"
+            className={`bg-gray-50 border-gray-200 ${errors.contactPerson_name ? 'border-red-500' : ''}`}
             required
           />
+          {errors.contactPerson_name && (
+            <p className="text-red-500 text-sm mt-1">{errors.contactPerson_name}</p>
+          )}
         </div>
 
         {/* Title / Role */}
         <div className="space-y-2">
-          <Label htmlFor="title" className="text-gray-700">
+          <Label htmlFor="contactPerson_title" className="text-gray-700">
             Title / Role:
+            <span className="text-red-500 ml-1">*</span>
           </Label>
           <Input
-            id="title"
-            value={formData.title}
-            onChange={(e) => handleChange("title", e.target.value)}
+            id="contactPerson_title"
+            value={formData.contactPerson_title}
+            onChange={(e) => handleChange("contactPerson_title", e.target.value)}
             placeholder="Enter your title / role here..."
-            className="bg-gray-50 border-gray-200"
+            className={`bg-gray-50 border-gray-200 ${errors.contactPerson_title ? 'border-red-500' : ''}`}
             required
           />
+          {errors.contactPerson_title && (
+            <p className="text-red-500 text-sm mt-1">{errors.contactPerson_title}</p>
+          )}
         </div>
 
         {/* Email */}
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-gray-700">
+          <Label htmlFor="contactPerson_email" className="text-gray-700">
             Email:
+            <span className="text-red-500 ml-1">*</span>
           </Label>
           <Input
-            id="email"
+            id="contactPerson_email"
             type="email"
-            value={formData.email}
-            onChange={(e) => handleChange("email", e.target.value)}
+            value={formData.contactPerson_email}
+            onChange={(e) => handleChange("contactPerson_email", e.target.value)}
             placeholder="Enter your email address here..."
-            className="bg-gray-50 border-gray-200"
+            className={`bg-gray-50 border-gray-200 ${errors.contactPerson_email ? 'border-red-500' : ''}`}
             required
           />
+          {errors.contactPerson_email && (
+            <p className="text-red-500 text-sm mt-1">{errors.contactPerson_email}</p>
+          )}
         </div>
 
         {/* Phone Number */}
         <div className="space-y-2">
-          <Label htmlFor="phoneNumber" className="text-gray-700">
+          <Label htmlFor="contactPerson_phone" className="text-gray-700">
             Phone Number:
+            <span className="text-red-500 ml-1">*</span>
           </Label>
           <Input
-            id="phoneNumber"
-            type="tel"
-            value={formData.phoneNumber}
-            onChange={(e) => handleChange("phoneNumber", e.target.value)}
+            id="contactPerson_phone"
+            type="number"
+            value={formData.contactPerson_phone}
+            onChange={(e) => handleChange("contactPerson_phone", e.target.value)}
             placeholder="Enter your phone number here..."
-            className="bg-gray-50 border-gray-200"
+            className={`bg-gray-50 border-gray-200 ${errors.contactPerson_phone ? 'border-red-500' : ''}`}
             required
           />
+          {errors.contactPerson_phone && (
+            <p className="text-red-500 text-sm mt-1">{errors.contactPerson_phone}</p>
+          )}
         </div>
 
         {/* Action Buttons */}

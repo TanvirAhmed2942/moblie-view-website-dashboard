@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import React, { useState } from "react";
 
 interface DonationRoutingFormProps {
   onNext: (data: DonationRoutingFormData) => void;
@@ -26,16 +26,45 @@ function DonationRoutingForm({
     internalTrackingId: initialData?.internalTrackingId || "",
   });
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   const handleChange = (
     field: keyof DonationRoutingFormData,
     value: string
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+
+    // Clear error for this field when user types
+    if (errors[field]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.dafPartner.trim()) {
+      newErrors.dafPartner = "DAF Partner is required";
+    }
+
+    if (!formData.internalTrackingId.trim()) {
+      newErrors.internalTrackingId = "Internal tracking ID is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onNext(formData);
+
+    if (validateForm()) {
+      onNext(formData);
+    }
   };
 
   return (
@@ -49,30 +78,38 @@ function DonationRoutingForm({
         <div className="space-y-2">
           <Label htmlFor="dafPartner" className="text-gray-700">
             DAF Partner:
+            <span className="text-red-500 ml-1">*</span>
           </Label>
           <Input
             id="dafPartner"
             value={formData.dafPartner}
             onChange={(e) => handleChange("dafPartner", e.target.value)}
             placeholder="Enter your DAF Partner name here..."
-            className="bg-gray-50 border-gray-200"
+            className={`bg-gray-50 border-gray-200 ${errors.dafPartner ? 'border-red-500' : ''}`}
             required
           />
+          {errors.dafPartner && (
+            <p className="text-red-500 text-sm mt-1">{errors.dafPartner}</p>
+          )}
         </div>
 
         {/* Internal Tracking ID */}
         <div className="space-y-2">
           <Label htmlFor="internalTrackingId" className="text-gray-700">
             Internal tracking ID:
+            <span className="text-red-500 ml-1">*</span>
           </Label>
           <Input
             id="internalTrackingId"
             value={formData.internalTrackingId}
             onChange={(e) => handleChange("internalTrackingId", e.target.value)}
             placeholder="Enter your internal tracking ID here..."
-            className="bg-gray-50 border-gray-200"
+            className={`bg-gray-50 border-gray-200 ${errors.internalTrackingId ? 'border-red-500' : ''}`}
             required
           />
+          {errors.internalTrackingId && (
+            <p className="text-red-500 text-sm mt-1">{errors.internalTrackingId}</p>
+          )}
         </div>
 
         {/* Action Buttons */}
@@ -87,9 +124,9 @@ function DonationRoutingForm({
           </Button>
           <Button
             type="submit"
-            className="bg-purple-600 hover:bg-purple-700 text-white px-8"
+            className="bg-green-600 hover:bg-green-700 text-white px-8"
           >
-            Published
+            Publish Campaign
           </Button>
         </div>
       </form>

@@ -1,5 +1,4 @@
-import VerifyEmail from "@/components/auth/verifyEmail";
-import React from "react";
+import VerifyEmail from '@/components/auth/verifyEmail';
 
 function page() {
   return <VerifyEmail />;

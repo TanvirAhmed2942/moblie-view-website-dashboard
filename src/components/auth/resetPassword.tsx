@@ -1,13 +1,16 @@
 "use client";
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, ArrowRight } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
+import Link from 'next/link';
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import toast from 'react-hot-toast';
+import { useResetPasswordMutation } from '../../features/auth/authApi';
 
 interface ResetPasswordForm {
   newPassword: string;
@@ -18,7 +21,9 @@ export default function ResetPassword() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token');
+  const [resetPasswordQUery, { isLoading }] = useResetPasswordMutation();
 
   const {
     register,
@@ -44,20 +49,26 @@ export default function ResetPassword() {
     }
   }, [newPassword, confirmPassword, trigger]);
 
-  const onSubmit = (data: ResetPasswordForm) => {
-    setIsLoading(true);
+  const onSubmit = async (data: ResetPasswordForm) => {
 
     // Simple form submission - just log the data
     console.log("Reset password data:", {
       newPassword: data.newPassword,
       confirmPassword: data.confirmPassword,
     });
+    try {
+      const response = await resetPasswordQUery({ newPassword: data.newPassword.trim(), confirmPassword: data.confirmPassword.trim(), token: token }).unwrap();
+      console.log("Reset password response:", response);
+      toast.success(response.message || 'Password has been reset successfully');
+      router.push('/auth/login');
+    } catch (error) {
+      console.error("Reset password error:", error);
+      toast.error(error?.data?.message || 'Failed to reset password. Please try again.');
+    }
 
-    // Simulate loading and redirect
-    setTimeout(() => {
-      setIsLoading(false);
-      router.push("/auth/login");
-    }, 1000);
+
+
+
   };
 
   return (
@@ -90,7 +101,7 @@ export default function ResetPassword() {
               <Input
                 id="newPassword"
                 type={showPassword ? "text" : "password"}
-                placeholder=""
+                placeholder="new password"
                 {...register("newPassword", {
                   required: "Password is required",
                   minLength: {
@@ -132,7 +143,7 @@ export default function ResetPassword() {
               <Input
                 id="confirmPassword"
                 type={showConfirmPassword ? "text" : "password"}
-                placeholder=""
+                placeholder="confirm password"
                 {...register("confirmPassword", {
                   required: "Please confirm your password",
                   validate: (value) => {
@@ -141,11 +152,10 @@ export default function ResetPassword() {
                     return true;
                   },
                 })}
-                className={`h-11 bg-white border rounded-xl focus:ring-2 focus:ring-purple-500 pr-12 ${
-                  errors.confirmPassword
-                    ? "border-red-500 focus:border-red-500"
-                    : "border-gray-300 focus:border-purple-500"
-                }`}
+                className={`h-11 bg-white border rounded-xl focus:ring-2 focus:ring-purple-500 pr-12 ${errors.confirmPassword
+                  ? "border-red-500 focus:border-red-500"
+                  : "border-gray-300 focus:border-purple-500"
+                  }`}
               />
               <Button
                 type="button"
@@ -178,6 +188,15 @@ export default function ResetPassword() {
             {isLoading ? "Changing..." : "Change Password"}
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
+          <div className="text-center text-sm text-gray-600 mt-4">
+            Remember your password?{' '}
+            <Link
+              href="/auth/login"
+              className="text-purple-600 hover:text-purple-600 font-medium"
+            >
+              Back to Login
+            </Link>
+          </div>
         </form>
       </CardContent>
     </Card>

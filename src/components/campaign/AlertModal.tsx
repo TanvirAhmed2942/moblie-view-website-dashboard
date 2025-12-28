@@ -1,25 +1,28 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { AlertTriangle, CalendarIcon } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import toast from 'react-hot-toast';
+import { useSetAlertCampaignMutation } from '../../features/campaign/campaignApi';
+import { Button } from "../ui/button";
+import { Calendar } from "../ui/calendar";
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
   DialogDescription,
   DialogFooter,
+  DialogTitle,
 } from "../ui/dialog";
-import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { Textarea } from "../ui/textarea";
-import { AlertTriangle, CalendarIcon } from "lucide-react";
-import { Calendar } from "../ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { Textarea } from "../ui/textarea";
 
 interface AlertModalProps {
   isOpen: boolean;
   onClose: () => void;
+  campaign?: any; // Campaign data from parent
   campaignName?: string;
   donorCount?: number;
   inviteesNumber?: number;
@@ -30,6 +33,7 @@ interface AlertModalProps {
 function AlertModal({
   isOpen,
   onClose,
+  campaign,
   campaignName = "Project Wellspring",
   donorCount: initialDonorCount,
   inviteesNumber: initialInviteesNumber,
@@ -42,56 +46,72 @@ function AlertModal({
   const [startDate, setStartDate] = useState<Date | undefined>(new Date());
   const [endDate, setEndDate] = useState<Date | undefined>(() => {
     const date = new Date();
-    date.setDate(date.getDate() + 30); // Default to 30 days from now
+    date.setDate(date.getDate() + 30);
     return date;
   });
   const [startTime, setStartTime] = useState({ hours: 0, minutes: 0 });
   const [endTime, setEndTime] = useState({ hours: 0, minutes: 0 });
+  const [setAlert, { isLoading }] = useSetAlertCampaignMutation();
 
-  // Parse date string to Date object (handles formats like "12-12-2025")
+  // Parse date string to Date object
   const parseDateString = (dateStr: string): Date | undefined => {
     if (!dateStr) return undefined;
-    // Try parsing as DD-MM-YYYY format first
-    const ddmmyyyy = dateStr.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-    if (ddmmyyyy) {
-      const [, day, month, year] = ddmmyyyy;
-      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    }
-    // Fallback to standard Date parsing
-    const parsed = new Date(dateStr);
-    return isNaN(parsed.getTime()) ? undefined : parsed;
+    const date = new Date(dateStr);
+    return isNaN(date.getTime()) ? undefined : date;
   };
 
-  // Update state when props change (when modal opens with new campaign data)
+  // Update state when props change
   useEffect(() => {
-    if (isOpen) {
-      if (initialDonorCount !== undefined) {
-        setDonorCount(initialDonorCount.toString());
+    if (isOpen && campaign) {
+      // Set campaign data
+      if (campaign.overall_raised !== undefined) {
+        setDonorCount(campaign.overall_raised.toString());
       }
-      if (initialInviteesNumber !== undefined) {
-        setInviteesNumber(initialInviteesNumber.toString());
+      if (campaign.total_invitees !== undefined) {
+        setInviteesNumber(campaign.total_invitees.toString());
       }
-      if (initialRaisedAmount) {
-        setRaisedAmount(initialRaisedAmount);
+
+      // Format raised amount
+      if (campaign.overall_raised !== undefined) {
+        setRaisedAmount(new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          minimumFractionDigits: 0,
+        }).format(campaign.overall_raised));
       }
-      if (initialStartDate) {
-        const parsedDate = parseDateString(initialStartDate);
-        if (parsedDate) {
-          setStartDate(parsedDate);
-          // Set end date to 30 days from start date
-          const end = new Date(parsedDate);
-          end.setDate(end.getDate() + 30);
-          setEndDate(end);
+
+      // Set dates from campaign
+      if (campaign.startDate) {
+        const parsedStartDate = parseDateString(campaign.startDate);
+        if (parsedStartDate) {
+          setStartDate(parsedStartDate);
+
+          // Set end date from campaign or default to 30 days after start
+          if (campaign.endDate) {
+            const parsedEndDate = parseDateString(campaign.endDate);
+            if (parsedEndDate) {
+              setEndDate(parsedEndDate);
+            } else {
+              const defaultEnd = new Date(parsedStartDate);
+              defaultEnd.setDate(defaultEnd.getDate() + 30);
+              setEndDate(defaultEnd);
+            }
+          } else {
+            const defaultEnd = new Date(parsedStartDate);
+            defaultEnd.setDate(defaultEnd.getDate() + 30);
+            setEndDate(defaultEnd);
+          }
         }
       }
+
+      // Set default alert message with campaign data
+      if (campaign.title) {
+        setAlertMessage(`Your "${campaign.title}" campaign is expiring in "{expire time}"`);
+        setMessage(`Your "${campaign.title}" campaign is expiring. In Just "{hours}" Hours. You made a big difference. "{raised amount}" Raised!! "{invitees number}" Invitees "{donors number}" Donors`);
+      }
     }
-  }, [
-    isOpen,
-    initialDonorCount,
-    initialInviteesNumber,
-    initialRaisedAmount,
-    initialStartDate,
-  ]);
+  }, [isOpen, campaign]);
+
   const [alertMessage, setAlertMessage] = useState(
     'Your Pass It Along Chain Is expiring in "{expire time}"'
   );
@@ -159,8 +179,44 @@ function AlertModal({
     return num.toLocaleString();
   };
 
-  // Extract countdown values for display (hours, minutes, seconds)
-  // For countdown display, use the calculated expire time
+  // Handle Send Alert
+  const handleSendAlert = async () => {
+    if (!campaign?._id) {
+      toast.error("No campaign selected");
+      return;
+    }
+
+    try {
+      // Prepare data for API
+      const alertData = {
+        alert: alertMessage,
+        message: message,
+        isSendAlert: true,
+        // You can add additional fields if needed
+        alertStartDate: combineDateAndTime(startDate, startTime),
+        alertEndDate: combineDateAndTime(endDate, endTime),
+        expireTime: expireTime
+      };
+
+      // Call the mutation
+      const response = await setAlert({
+        id: campaign._id,
+        data: {
+          alert: alertMessage,
+          message: message,
+          isSendAlert: true
+        }
+      }).unwrap();
+
+      toast.success(response.message || "Alert sent successfully!");
+      onClose();
+    } catch (error: any) {
+      console.error('Error sending alert:', error);
+      toast.error(error?.data?.message || "Failed to send alert");
+    }
+  };
+
+  // Extract countdown values for display
   const countdownHours = Math.floor(expireTime.hours % 24);
   const countdownMins = expireTime.minutes % 60;
   const countdownSecs = expireTime.seconds % 60;
@@ -180,12 +236,47 @@ function AlertModal({
             </DialogTitle>
           </div>
           <DialogDescription className="text-base text-gray-600">
-            Configure automated alerts for the &apos;{campaignName}&apos;
+            Configure automated alerts for the &apos;{campaign?.title || campaignName}&apos;
             campaign.
           </DialogDescription>
         </div>
 
         <div className="space-y-6 mt-6">
+          {/* Campaign Info Summary */}
+          {campaign && (
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-gray-900 mb-2">Campaign Information</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">Target Amount</p>
+                  <p className="font-semibold">
+                    {new Intl.NumberFormat('en-US', {
+                      style: 'currency',
+                      currency: 'USD',
+                    }).format(campaign.targetAmount || 0)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Raised Amount</p>
+                  <p className="font-semibold">
+                    {new Intl.NumberFormat('en-US', {
+                      style: 'currency',
+                      currency: 'USD',
+                    }).format(campaign.overall_raised || 0)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Invitees</p>
+                  <p className="font-semibold">{campaign.total_invitees || 0}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Status</p>
+                  <p className="font-semibold capitalize">{campaign.campaignStatus}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Alert Trigger Section */}
           <div className="space-y-4">
             <div>
@@ -199,10 +290,7 @@ function AlertModal({
             </div>
 
             <div className="w-full flex justify-between gap-10 ">
-              {/* Left Panel - Trigger Conditions */}
-
-              {/* Right Panel - Date and Time Configuration */}
-
+              {/* Left Panel - Date and Time Configuration */}
               <div className="flex flex-col gap-4 w-1/2">
                 <div>
                   <Label className="text-gray-700 font-medium">
@@ -294,7 +382,7 @@ function AlertModal({
                         )}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    {/* <PopoverContext className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
                         selected={endDate}
@@ -302,7 +390,7 @@ function AlertModal({
                         initialFocus
                         disabled={(date) => !!(startDate && date < startDate)}
                       />
-                    </PopoverContent>
+                    </PopoverContext> */}
                   </Popover>
                 </div>
                 <div>
@@ -347,7 +435,7 @@ function AlertModal({
                   onClick={handleCalculate}
                   className="w-full bg-purple-600 hover:bg-purple-700 text-white"
                 >
-                  Calculate
+                  Calculate Expire Time
                 </Button>
               </div>
 
@@ -376,6 +464,11 @@ function AlertModal({
                     </p>
                   </div>
                 </div>
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-gray-600">
+                    Total: {expireTime.hours} hours, {expireTime.minutes} minutes, {expireTime.seconds} seconds
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -393,7 +486,7 @@ function AlertModal({
                 htmlFor="alertMessage"
                 className="text-gray-700 font-medium"
               >
-                Alerts:
+                Alert:
               </Label>
               <div className="relative mt-1">
                 <Textarea
@@ -402,11 +495,15 @@ function AlertModal({
                   onChange={(e) => setAlertMessage(e.target.value)}
                   maxLength={80}
                   className="min-h-[100px] border-gray-300 pr-16"
+                  placeholder="Enter alert message (e.g., Your campaign is expiring in {expire time})"
                 />
                 <span className="absolute bottom-2 right-2 text-xs text-gray-500">
                   {alertMessage.length}/80
                 </span>
               </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Use {"{expire time}"} placeholder for countdown
+              </p>
             </div>
 
             <div>
@@ -418,13 +515,17 @@ function AlertModal({
                   id="message"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  maxLength={80}
+                  maxLength={150}
                   className="min-h-[100px] border-gray-300 pr-16"
+                  placeholder="Enter detailed message with placeholders"
                 />
                 <span className="absolute bottom-2 right-2 text-xs text-gray-500">
-                  {message.length}/80
+                  {message.length}/150
                 </span>
               </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Available placeholders: {"{hours}"}, {"{raised amount}"}, {"{invitees number}"}, {"{donors number}"}
+              </p>
             </div>
           </div>
 
@@ -438,7 +539,7 @@ function AlertModal({
               <div className="bg-white border border-yellow-300 rounded-lg p-4">
                 <p className="text-sm text-gray-700 mb-3">
                   {alertMessage.replace(/{expire time}/g, "").trim() ||
-                    "Your Pass It Along Chain Is expiring in"}
+                    "Your campaign is expiring in"}
                 </p>
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <div className="text-center">
@@ -473,7 +574,7 @@ function AlertModal({
                     .replace(/{invitees number}/g, "")
                     .replace(/{donors number}/g, "")
                     .split('"')[0] ||
-                    "Your Pass It Along Chain has expiring. In Just"}
+                    "Your campaign is expiring. In Just"}
                   <span className="font-semibold"> {expireTime.hours}</span>{" "}
                   Hours
                   {message.split('"')[1]?.split('"')[0] ||
@@ -505,17 +606,16 @@ function AlertModal({
             variant="outline"
             onClick={onClose}
             className="px-6 py-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+            disabled={isLoading}
           >
             Cancel
           </Button>
           <Button
-            onClick={() => {
-              console.log("Sending alert...");
-              onClose();
-            }}
-            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white"
+            onClick={handleSendAlert}
+            disabled={isLoading}
+            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
           >
-            Send Alert
+            {isLoading ? "Sending..." : "Send Alert"}
           </Button>
         </DialogFooter>
       </DialogContent>

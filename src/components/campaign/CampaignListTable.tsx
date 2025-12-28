@@ -1,13 +1,10 @@
 "use client";
-import React, { useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../ui/table";
+import { AlertCircle, Eye, Pencil, Search, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import toast from 'react-hot-toast';
+import { useDeleteCampaignMutation, useGetCampaignQuery, useSingleGetCampaignQuery, useUpdateCampaignMutation } from '../../features/campaign/campaignApi';
+import DeleteConfirmationDialog from "../confirmation/deleteConfirmationDialog";
+import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import {
   Select,
@@ -16,97 +13,151 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { Button } from "../ui/button";
-import { Search, Trash2, Eye, Pencil } from "lucide-react";
-import DeleteConfirmationDialog from "../confirmation/deleteConfirmationDialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../ui/table";
+import AlertModal from './AlertModal';
 import CampaignViewEditModal, { CampaignData } from "./CampaignViewEditModal";
+
+// Interface matching API response
+interface Campaign {
+  _id: string;
+  organization_name: string;
+  title: string;
+  organization_website: string;
+  startDate: string;
+  endDate: string;
+  targetAmount: number;
+  campaignStatus: string;
+  overall_raised?: number;
+  description?: string;
+  address?: string;
+  donor_name?: string;
+  createdBy?: string;
+  total_invitees?: number;
+  organization_type?: string;
+  organization_taxId?: string;
+  organization_address?: string;
+  contactPerson_name?: string;
+  contactPerson_email?: string;
+  contactPerson_phone?: string;
+  cause_title?: string;
+  cause_description?: string;
+  cause_mission?: string;
+  cause_image?: string;
+  isDeleted?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 interface Campaign {
   id: string;
-  organizationName: string;
   campaignName: string;
-  websiteUrl: string;
+  donorsCount: number;
+  inviteCount: number;
+  amount: string;
   startDate: string;
-  endDate: string;
-  seedDonationAmount: string;
-  status?: "Active" | "Upcoming" | "Completed" | "Draft";
+  status: "Active" | "Upcoming" | "Completed" | "Closed";
+  totalRaised: string;
+  target: string;
+  progress: number;
 }
 
-const campaigns: Campaign[] = [
-  {
-    id: "1",
-    organizationName: "Project Wellspring",
-    campaignName: "Rise Beyond Trafficking",
-    websiteUrl: "Www.Rippleeffect.Org",
-    startDate: "12-12-2025",
-    endDate: "12-12-2025",
-    seedDonationAmount: "$10,000.00",
-  },
-  {
-    id: "2",
-    organizationName: "Project Wellspring",
-    campaignName: "Rise Beyond Trafficking",
-    websiteUrl: "Www.Rippleeffect.Org",
-    startDate: "12-12-2025",
-    endDate: "12-12-2025",
-    seedDonationAmount: "$2,000.00",
-  },
-  {
-    id: "3",
-    organizationName: "Project Wellspring",
-    campaignName: "Rise Beyond Trafficking",
-    websiteUrl: "Www.Rippleeffect.Org",
-    startDate: "12-12-2025",
-    endDate: "12-12-2025",
-    seedDonationAmount: "$11,000.00",
-  },
-  {
-    id: "4",
-    organizationName: "Project Wellspring",
-    campaignName: "Rise Beyond Trafficking",
-    websiteUrl: "Www.Rippleeffect.Org",
-    startDate: "12-12-2025",
-    endDate: "12-12-2025",
-    seedDonationAmount: "$8,000.00",
-  },
-  {
-    id: "5",
-    organizationName: "Project Wellspring",
-    campaignName: "Rise Beyond Trafficking",
-    websiteUrl: "Www.Rippleeffect.Org",
-    startDate: "12-12-2025",
-    endDate: "12-12-2025",
-    seedDonationAmount: "$1,000.00",
-  },
-];
 
 function CampaignListTable() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(
-    null
-  );
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isViewEditModalOpen, setIsViewEditModalOpen] = useState(false);
-  const [viewEditCampaign, setViewEditCampaign] = useState<CampaignData | null>(
-    null
-  );
+  const [viewEditCampaign, setViewEditCampaign] = useState<CampaignData | null>(null);
   const [modalMode, setModalMode] = useState<"view" | "edit">("view");
+  const [campaignId, setCampaignId] = useState<string | null>(null);
+  const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
+  const [selectedCampaign2, setSelectedCampaign2] = useState<Campaign | null>(null);
 
-  const filteredCampaigns = campaigns.filter((campaign) => {
+  // Fetch campaigns with search query
+  const { data: campaignsResponse, isLoading, refetch } = useGetCampaignQuery(searchQuery || undefined);
+
+  // Fetch single campaign when ID is set
+  const { data: singleCampaignResponse } = useSingleGetCampaignQuery(campaignId || undefined, {
+    skip: !campaignId,
+  });
+
+
+  const [deleteCampaign] = useDeleteCampaignMutation();
+
+  const [updateCampaign] = useUpdateCampaignMutation();
+
+
+  // Convert API response to UI format
+  const transformCampaigns = (apiCampaigns: Campaign[]) => {
+    return apiCampaigns.map(campaign => ({
+      _id: campaign._id,
+      organization_name: campaign.organization_name || "N/A",
+      title: campaign.title || "Untitled Campaign",
+      organization_website: campaign.organization_website || "",
+      startDate: campaign.startDate ? new Date(campaign.startDate).toLocaleDateString() : "N/A",
+      endDate: campaign.endDate ? new Date(campaign.endDate).toLocaleDateString() : "N/A",
+      targetAmount: campaign.targetAmount || 0,
+      campaignStatus: campaign.campaignStatus || "draft",
+      overall_raised: campaign.overall_raised || 0,
+      description: campaign.description || "",
+    }));
+  };
+
+  // Handle search with debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery !== "") {
+        refetch();
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, refetch]);
+
+  // Get campaigns from API response
+  const apiCampaigns = campaignsResponse?.data?.result || [];
+  const transformedCampaigns = transformCampaigns(apiCampaigns);
+
+  // Get meta data for pagination
+  const meta = campaignsResponse?.data?.meta || {
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPage: 1
+  };
+
+  // Filter campaigns based on status
+  const filteredCampaigns = transformedCampaigns.filter((campaign) => {
     const matchesSearch =
-      campaign.campaignName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      campaign.organizationName
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
+      campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      campaign.organization_name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus =
       statusFilter === "all" ||
-      (campaign.status && campaign.status === statusFilter);
+      campaign.campaignStatus.toLowerCase() === statusFilter.toLowerCase();
     return matchesSearch && matchesStatus;
   });
 
+  // Format amount to currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  // Handle delete click
   const handleDeleteClick = (campaign: Campaign) => {
     setSelectedCampaign(campaign);
     setIsDeleteModalOpen(true);
@@ -115,13 +166,18 @@ function CampaignListTable() {
   const handleDeleteConfirm = async () => {
     if (selectedCampaign) {
       setIsDeleting(true);
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log(`Deleting campaign: ${selectedCampaign.campaignName}`);
-      // Here you would typically make an API call to delete the campaign
-      setIsDeleting(false);
-      setIsDeleteModalOpen(false);
-      setSelectedCampaign(null);
+      try {
+        const response = await deleteCampaign(selectedCampaign._id).unwrap();
+        toast.success(response.message || "Campaign deleted successfully!");
+        // Refetch campaigns after deletion
+        refetch();
+      } catch (error) {
+        console.error('Error deleting campaign:', error);
+      } finally {
+        setIsDeleting(false);
+        setIsDeleteModalOpen(false);
+        setSelectedCampaign(null);
+      }
     }
   };
 
@@ -130,32 +186,22 @@ function CampaignListTable() {
     setSelectedCampaign(null);
   };
 
+  // Handle view click
   const handleViewClick = (campaign: Campaign) => {
-    const campaignData: CampaignData = {
-      id: campaign.id,
-      organizationName: campaign.organizationName,
-      campaignName: campaign.campaignName,
-      websiteUrl: campaign.websiteUrl,
-      startDate: campaign.startDate,
-      endDate: campaign.endDate,
-      seedDonationAmount: campaign.seedDonationAmount,
-    };
-    setViewEditCampaign(campaignData);
+    setCampaignId(campaign._id);
     setModalMode("view");
     setIsViewEditModalOpen(true);
   };
 
+
+  const handleCloseAlertModal = () => {
+    setIsAlertModalOpen(false);
+    setSelectedCampaign(null);
+  };
+
+  // Handle edit click
   const handleEditClick = (campaign: Campaign) => {
-    const campaignData: CampaignData = {
-      id: campaign.id,
-      organizationName: campaign.organizationName,
-      campaignName: campaign.campaignName,
-      websiteUrl: campaign.websiteUrl,
-      startDate: campaign.startDate,
-      endDate: campaign.endDate,
-      seedDonationAmount: campaign.seedDonationAmount,
-    };
-    setViewEditCampaign(campaignData);
+    setCampaignId(campaign._id);
     setModalMode("edit");
     setIsViewEditModalOpen(true);
   };
@@ -165,22 +211,56 @@ function CampaignListTable() {
     setViewEditCampaign(null);
   };
 
-  const itemsPerPage = 5;
-  const totalPages = Math.ceil(filteredCampaigns.length / itemsPerPage);
+  const handleSetAlert = (campaign: any) => {
+    setSelectedCampaign2(campaign);
+    setIsAlertModalOpen(true);
+  };
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Here you would make an API call with pagination parameters
+    // For now, we'll use client-side pagination
+  };
+
+  // Pagination logic
+  const itemsPerPage = meta.limit || 10;
+  const totalItems = meta.total || filteredCampaigns.length;
+  const totalPages = meta.totalPage || Math.ceil(totalItems / itemsPerPage);
+
+  // Get paginated campaigns (client-side for now)
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedCampaigns = filteredCampaigns.slice(startIndex, endIndex);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading campaigns...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
       {/* Header Section */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Campaign List</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Campaign List</h1>
+          {meta.total > 0 && (
+            <p className="text-sm text-gray-600 mt-1">
+              Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} campaigns
+            </p>
+          )}
+        </div>
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Search..."
+              placeholder="Search campaigns..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 w-64 border-gray-300"
@@ -192,10 +272,10 @@ function CampaignListTable() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Status: All</SelectItem>
-              <SelectItem value="Active">Status: Active</SelectItem>
-              <SelectItem value="Upcoming">Status: Upcoming</SelectItem>
-              <SelectItem value="Completed">Status: Completed</SelectItem>
-              <SelectItem value="Draft">Status: Draft</SelectItem>
+              <SelectItem value="active">Status: Active</SelectItem>
+              <SelectItem value="upcoming">Status: Upcoming</SelectItem>
+              <SelectItem value="completed">Status: Completed</SelectItem>
+              <SelectItem value="draft">Status: Draft</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -216,13 +296,16 @@ function CampaignListTable() {
                 Website URL
               </TableHead>
               <TableHead className="text-gray-700 font-semibold">
-                End Date
-              </TableHead>
-              <TableHead className="text-gray-700 font-semibold">
                 Start Date
               </TableHead>
               <TableHead className="text-gray-700 font-semibold">
-                Seed Donation Amount
+                End Date
+              </TableHead>
+              <TableHead className="text-gray-700 font-semibold">
+                Target Amount
+              </TableHead>
+              <TableHead className="text-gray-700 font-semibold">
+                Status
               </TableHead>
               <TableHead className="text-gray-700 font-semibold">
                 Action
@@ -233,37 +316,57 @@ function CampaignListTable() {
             {paginatedCampaigns.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className="text-center py-8 text-gray-500"
                 >
-                  No campaigns found
+                  {searchQuery || statusFilter !== "all"
+                    ? "No campaigns match your search criteria"
+                    : "No campaigns found"}
                 </TableCell>
               </TableRow>
             ) : (
               paginatedCampaigns.map((campaign) => (
                 <TableRow
-                  key={campaign.id}
+                  key={campaign._id}
                   className="bg-white hover:bg-gray-50"
                 >
                   <TableCell className="font-medium">
-                    {campaign.organizationName}
+                    {campaign.organization_name}
                   </TableCell>
                   <TableCell className="font-medium">
-                    {campaign.campaignName}
+                    {campaign.title}
                   </TableCell>
                   <TableCell>
-                    <a
-                      href={`https://${campaign.websiteUrl.toLowerCase()}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-purple-600 hover:text-purple-700 hover:underline"
-                    >
-                      {campaign.websiteUrl}
-                    </a>
+                    {campaign.organization_website ? (
+                      <a
+                        href={campaign.organization_website.startsWith('http')
+                          ? campaign.organization_website
+                          : `https://${campaign.organization_website}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-purple-600 hover:text-purple-700 hover:underline"
+                      >
+                        {campaign.organization_website}
+                      </a>
+                    ) : (
+                      <span className="text-gray-400">Not provided</span>
+                    )}
                   </TableCell>
-                  <TableCell>{campaign.endDate}</TableCell>
                   <TableCell>{campaign.startDate}</TableCell>
-                  <TableCell>{campaign.seedDonationAmount}</TableCell>
+                  <TableCell>{campaign.endDate}</TableCell>
+                  <TableCell>{formatCurrency(campaign.targetAmount)}</TableCell>
+                  <TableCell>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${campaign.campaignStatus === 'active'
+                      ? 'bg-green-100 text-green-800'
+                      : campaign.campaignStatus === 'completed'
+                        ? 'bg-blue-100 text-blue-800'
+                        : campaign.campaignStatus === 'upcoming'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                      {campaign.campaignStatus.charAt(0).toUpperCase() + campaign.campaignStatus.slice(1)}
+                    </span>
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Button
@@ -271,6 +374,7 @@ function CampaignListTable() {
                         size="sm"
                         className="h-8 w-8 p-0 bg-purple-600 hover:bg-purple-700 rounded-full"
                         onClick={() => handleViewClick(campaign)}
+                        title="View Campaign"
                       >
                         <Eye className="h-4 w-4 text-white" />
                       </Button>
@@ -279,6 +383,7 @@ function CampaignListTable() {
                         size="sm"
                         className="h-8 w-8 p-0 bg-red-600 hover:bg-red-700 rounded-full"
                         onClick={() => handleDeleteClick(campaign)}
+                        title="Delete Campaign"
                       >
                         <Trash2 className="h-4 w-4 text-white" />
                       </Button>
@@ -287,8 +392,18 @@ function CampaignListTable() {
                         size="sm"
                         className="h-8 w-8 p-0 bg-orange-500 hover:bg-orange-600 rounded-full"
                         onClick={() => handleEditClick(campaign)}
+                        title="Edit Campaign"
                       >
                         <Pencil className="h-4 w-4 text-white" />
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="bg-red-600 hover:bg-red-700 text-white border border-red-300 rounded-full"
+                        onClick={() => handleSetAlert(campaign)}
+                      >
+                        <AlertCircle className="h-4 w-4" />
+
                       </Button>
                     </div>
                   </TableCell>
@@ -310,58 +425,49 @@ function CampaignListTable() {
           >
             Previous
           </Button>
+
           <div className="flex items-center gap-2">
-            <Button
-              variant={currentPage === 1 ? "default" : "ghost"}
-              className={`px-4 py-2 rounded-lg ${
-                currentPage === 1
-                  ? "bg-purple-600 hover:bg-purple-700 text-white"
-                  : "text-gray-700 hover:bg-gray-100 bg-white border border-gray-300"
-              }`}
-              onClick={() => setCurrentPage(1)}
-            >
-              1
-            </Button>
-            {totalPages > 1 && (
-              <Button
-                variant="ghost"
-                className="px-4 py-2 text-gray-700 hover:bg-gray-100 bg-white border border-gray-300 rounded-lg"
-                onClick={() => setCurrentPage(2)}
-              >
-                2
-              </Button>
-            )}
-            {totalPages > 2 && (
-              <Button
-                variant="ghost"
-                className="px-4 py-2 text-gray-700 hover:bg-gray-100 bg-white border border-gray-300 rounded-lg"
-                onClick={() => setCurrentPage(3)}
-              >
-                3
-              </Button>
-            )}
-            {totalPages > 3 && (
-              <Button
-                variant="ghost"
-                className="px-4 py-2 text-gray-700 hover:bg-gray-100 bg-white border border-gray-300 rounded-lg"
-                onClick={() => setCurrentPage(4)}
-              >
-                4
-              </Button>
-            )}
-            {totalPages > 5 && (
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNum;
+              if (totalPages <= 5) {
+                pageNum = i + 1;
+              } else if (currentPage <= 3) {
+                pageNum = i + 1;
+              } else if (currentPage >= totalPages - 2) {
+                pageNum = totalPages - 4 + i;
+              } else {
+                pageNum = currentPage - 2 + i;
+              }
+
+              return (
+                <Button
+                  key={pageNum}
+                  variant={currentPage === pageNum ? "default" : "ghost"}
+                  className={`px-4 py-2 rounded-lg ${currentPage === pageNum
+                    ? "bg-purple-600 hover:bg-purple-700 text-white"
+                    : "text-gray-700 hover:bg-gray-100 bg-white border border-gray-300"
+                    }`}
+                  onClick={() => setCurrentPage(pageNum)}
+                >
+                  {pageNum}
+                </Button>
+              );
+            })}
+
+            {totalPages > 5 && currentPage < totalPages - 2 && (
               <>
                 <span className="px-2 text-gray-700">...</span>
                 <Button
                   variant="ghost"
                   className="px-4 py-2 text-gray-700 hover:bg-gray-100 bg-white border border-gray-300 rounded-lg"
-                  onClick={() => setCurrentPage(25)}
+                  onClick={() => setCurrentPage(totalPages)}
                 >
-                  25
+                  {totalPages}
                 </Button>
               </>
             )}
           </div>
+
           <Button
             variant="default"
             disabled={currentPage === totalPages}
@@ -381,7 +487,7 @@ function CampaignListTable() {
         onClose={handleDeleteCancel}
         onConfirm={handleDeleteConfirm}
         title="Delete Campaign"
-        itemName={selectedCampaign?.campaignName}
+        itemName={selectedCampaign?.title}
         itemType="campaign"
         isLoading={isDeleting}
         confirmButtonText="Delete Campaign"
@@ -393,8 +499,18 @@ function CampaignListTable() {
       <CampaignViewEditModal
         isOpen={isViewEditModalOpen}
         onClose={handleCloseViewEditModal}
-        campaign={viewEditCampaign}
+        campaign={singleCampaignResponse?.data}
         mode={modalMode}
+        onSuccess={() => {
+          // Refetch campaigns after successful update
+          refetch();
+          toast.success("Campaign updated successfully!");
+        }}
+      />
+      <AlertModal
+        isOpen={isAlertModalOpen}
+        onClose={handleCloseAlertModal}
+        campaign={selectedCampaign2}
       />
     </div>
   );
