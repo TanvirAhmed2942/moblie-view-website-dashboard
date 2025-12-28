@@ -9,7 +9,7 @@ function CampaignLayout() {
   return (
     <div>
 
-
+      <button className='border border-red-500' onClick={handleAddCampaign}>Add Campaign</button>
       <CampaignListTable />
 
     </div>
