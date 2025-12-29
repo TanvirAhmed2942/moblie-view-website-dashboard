@@ -2,21 +2,22 @@
 import AnalyticsLayout from "@/components/analytics/AnalyticsLayout";
 import { useAppSelector } from "@/redux/hooks";
 import { useRouter } from "next/navigation";
+import { useEffect } from 'react';
 
 export default function Home() {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAppSelector((state) => state.auth);
 
-  // useEffect(() => {
-  //   // If not loading and not authenticated, redirect to login
-  //   if (!isLoading && !isAuthenticated) {
-  //     // Check localStorage as fallback
-  //     const token = localStorage.getItem("accessToken");
-  //     if (!token) {
-  //       router.replace("/auth/login");
-  //     }
-  //   }
-  // }, [isAuthenticated, isLoading, router]);
+  useEffect(() => {
+    // If not loading and not authenticated, redirect to login
+    if (!isLoading && !isAuthenticated) {
+      // Check localStorage as fallback
+      const token = localStorage.getItem("MobileViewAdmin");
+      if (!token) {
+        router.replace("/auth/login");
+      }
+    }
+  }, [isAuthenticated, isLoading, router]);
 
   // Show loading while checking authentication
   if (isLoading) {

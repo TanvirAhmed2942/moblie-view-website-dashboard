@@ -9,7 +9,9 @@ function CampaignLayout() {
   return (
     <div>
 
-      <button className='border border-red-500' onClick={handleAddCampaign}>Add Campaign</button>
+      <div className='flex justify-end pb-2'>
+        <button className='bg-purple-600 text-white px-4 cursor-pointer py-1.5 text-sm rounded-sm shadow' onClick={handleAddCampaign}>Add Campaign</button>
+      </div>
       <CampaignListTable />
 
     </div>

@@ -33,10 +33,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} antialiased h-screen`}
       >
+        {/* <AuthGuard> */}
         <ClientLayout>
           {children}
           <Toaster />
         </ClientLayout>
+        {/* </AuthGuard> */}
       </body>
     </html>
   );

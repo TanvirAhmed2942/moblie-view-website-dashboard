@@ -137,8 +137,8 @@ function SeeDonorProfileModal({
   currentInviteePage,
   isLoadingDetails = false,
 }: SeeDonorProfileModalProps) {
-  const [donationSearchQuery, setDonationSearchQuery] = useState("");
-  const [inviteeSearchQuery, setInviteeSearchQuery] = useState("");
+  const [donationSearchQuery, setDonationSearchQuery] = useState<string>("");
+  const [inviteeSearchQuery, setInviteeSearchQuery] = useState<string>("");
 
   // Reset search when modal opens
   useEffect(() => {
@@ -196,7 +196,7 @@ function SeeDonorProfileModal({
 
   // Filter donations based on search (client-side filtering for search only)
   const filteredDonations = transactions.filter(
-    (transaction) =>
+    (transaction: Transaction) =>
       transaction?.campaignTitle?.toLowerCase()?.includes(donationSearchQuery?.toLowerCase()) ||
       transaction?.transactionId?.toLowerCase()?.includes(donationSearchQuery?.toLowerCase()) ||
       transaction?.paymentMethod?.toLowerCase()?.includes(donationSearchQuery?.toLowerCase())
@@ -204,15 +204,15 @@ function SeeDonorProfileModal({
 
   // Filter invitees based on search (client-side filtering for search only)
   const filteredInvitees = invitations.filter(
-    (invitee) =>
+    (invitee: Invitation) =>
       invitee?.invitationForName?.toLowerCase()?.includes(inviteeSearchQuery?.toLowerCase()) ||
       invitee?.invitationForPhone?.toLowerCase()?.includes(inviteeSearchQuery?.toLowerCase()) ||
       (invitee?.campaignTitle || invitee?.campaignId?.title)?.toLowerCase()?.includes(inviteeSearchQuery?.toLowerCase())
   );
 
   // Calculate accepted and pending invitees
-  const acceptedInvitees = invitations.filter(inv => inv.isDonated).length;
-  const pendingInvitees = invitations.filter(inv => !inv.isDonated).length;
+  const acceptedInvitees = invitations.filter((inv: Invitation) => inv.isDonated).length;
+  const pendingInvitees = invitations.filter((inv: Invitation) => !inv.isDonated).length;
 
   // Get pagination metadata from API
   const donationTotalPages = transactionMeta?.totalPage || 1;
@@ -236,9 +236,9 @@ function SeeDonorProfileModal({
   const isDonationLastPage = donationCurrentPage === donationTotalPages;
   const isInviteeLastPage = inviteeCurrentPage === inviteeTotalPages;
 
-  // Generate page buttons for pagination
-  const renderPageButtons = (currentPage: number, totalPages: number, setPage: (page: number) => void, type: 'donation' | 'invitee') => {
-    const buttons = [];
+  // Generate page buttons for pagination - FIXED: Removed extra parameter
+  const renderPageButtons = (currentPage: number, totalPages: number, setPage: (page: number) => void) => {
+    const buttons: React.ReactNode[] = [];
 
     if (totalPages === 0 || totalPages === 1) return buttons;
 
@@ -515,7 +515,7 @@ function SeeDonorProfileModal({
                             </TableCell>
                           </TableRow>
                         ) : (
-                          filteredDonations.map((transaction) => (
+                          filteredDonations.map((transaction: Transaction) => (
                             <TableRow
                               key={transaction._id}
                               className="bg-white hover:bg-gray-50"
@@ -555,7 +555,7 @@ function SeeDonorProfileModal({
                           Previous
                         </Button>
                         <div className="flex items-center gap-1">
-                          {renderPageButtons(donationCurrentPage, donationTotalPages, onDonationPageChange, 'donation')}
+                          {renderPageButtons(donationCurrentPage, donationTotalPages, onDonationPageChange)}
                         </div>
                         <Button
                           variant="default"
@@ -618,7 +618,7 @@ function SeeDonorProfileModal({
                             </TableCell>
                           </TableRow>
                         ) : (
-                          filteredInvitees.map((invitee) => (
+                          filteredInvitees.map((invitee: Invitation) => (
                             <TableRow
                               key={invitee._id}
                               className="bg-white hover:bg-gray-50"
@@ -663,7 +663,7 @@ function SeeDonorProfileModal({
                           Previous
                         </Button>
                         <div className="flex items-center gap-1">
-                          {renderPageButtons(inviteeCurrentPage, inviteeTotalPages, onInviteePageChange, 'invitee')}
+                          {renderPageButtons(inviteeCurrentPage, inviteeTotalPages, onInviteePageChange)}
                         </div>
                         <Button
                           variant="default"

@@ -1,75 +1,77 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Check,
-  Edit2,
-  Plus,
-  Save,
-  Trash2,
-  X
-} from 'lucide-react';
+import { Check, Edit2, Plus, Trash2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
+import {
+  useAllPrivacyQuery,
+  useCreatePrivacyMutation,
+  useDeletePrivacyMutation,
+  useUpdatePrivacyMutation
+} from "../../../features/privacy/privacyApi";
+
+// Define the type for a privacy policy section based on your API
+interface PrivacyPolicySection {
+  _id: string;
+  type: string;
+  title: string;
+  content: string;
+  createdAt?: string;
+  updatedAt?: string;
+  isEditing?: boolean; // Frontend-only state for editing
+  order?: number; // Frontend-only state for ordering
+}
 
 const PrivacyPolicyContent = () => {
-  // Initial content structure
-  const initialSections = [
-    {
-      id: 'section1',
-      title: 'Information We Collect',
-      content: 'We collect information that you provide directly to us, such as when you create an account, update your profile, use our services, or communicate with us.',
-      isEditing: false,
-      order: 1
-    },
-    {
-      id: 'section2',
-      title: 'How We Use Your Information',
-      content: 'We use the information we collect to provide, maintain, and improve our services, to develop new ones, and to protect our company and our users.',
-      isEditing: false,
-      order: 2
-    },
-    {
-      id: 'section3',
-      title: 'Information Sharing',
-      content: 'We do not share personal information with companies, organizations, or individuals outside of our company except in the following cases: with your consent, for legal reasons, or with domain administrators.',
-      isEditing: false,
-      order: 3
-    },
-    {
-      id: 'section4',
-      title: 'Data Security',
-      content: 'We work hard to protect our users from unauthorized access to or unauthorized alteration, disclosure, or destruction of information we hold.',
-      isEditing: false,
-      order: 4
-    },
-    {
-      id: 'section5',
-      title: 'Your Rights',
-      content: 'Depending on your location, you may have certain rights regarding your personal information, such as the right to access, correct, delete, or restrict processing of your data.',
-      isEditing: false,
-      order: 5
-    }
-  ];
+  // 1. Fetch all privacy policies from the API
+  const {
+    data: apiResponse,
+    isLoading: isFetching,
+    refetch // Function to refetch data after mutations
+  } = useAllPrivacyQuery({});
 
-  // State for privacy policy sections
-  const [privacyPolicyContent, setPrivacyPolicyContent] = useState(initialSections);
+  // 2. API mutation hooks
+  const [createPrivacy, { isLoading: isCreating }] = useCreatePrivacyMutation();
+  const [updatePrivacy, { isLoading: isUpdating }] = useUpdatePrivacyMutation();
+  const [deletePrivacy, { isLoading: isDeleting }] = useDeletePrivacyMutation();
 
-  // State for new section
+  // 3. State for privacy policy sections - initialized from API
+  const [privacyPolicyContent, setPrivacyPolicyContent] = useState<PrivacyPolicySection[]>([]);
+
+  // 4. State for adding a new section
   const [newSection, setNewSection] = useState({
     title: '',
     content: '',
     isEditing: true
   });
 
-  // State for preview mode
-  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  // 5. State for preview mode
+  const [isPreviewMode] = useState(false);
+
+  // 6. Loading and error state
+  const isLoading = isFetching || isCreating || isUpdating || isDeleting;
+
+  // Load API data into state when it's fetched
+  useEffect(() => {
+    if (apiResponse?.success && apiResponse.data) {
+      // Transform API data to include frontend-only properties
+      const sectionsWithEditState: PrivacyPolicySection[] = apiResponse.data.map((section: PrivacyPolicySection, index: number) => ({
+        ...section,
+        isEditing: false,
+        order: index + 1 // Use array index for ordering
+      }));
+
+      setPrivacyPolicyContent(sectionsWithEditState);
+    }
+  }, [apiResponse]);
 
   // Toggle edit mode for a section
-  const togglePrivacyPolicyEditing = (id: any) => {
+  const togglePrivacyPolicyEditing = (id: string) => {
     setPrivacyPolicyContent(prev =>
       prev.map(section => {
-        if (section.id === id) {
+        if (section._id === id) {
+          // If we're toggling OFF edit mode, validate before saving
           if (section.isEditing) {
-            // Validate before saving
             if (!section.title.trim() || !section.content.trim()) {
               alert('Both title and content are required');
               return section;
@@ -83,174 +85,86 @@ const PrivacyPolicyContent = () => {
   };
 
   // Handle content change for a section
-  const handlePrivacyPolicyChange = (id: any, value: any, field: any) => {
+  const handlePrivacyPolicyChange = (id: string, value: string, field: 'title' | 'content') => {
     setPrivacyPolicyContent(prev =>
       prev.map(section =>
-        section.id === id ? { ...section, [field]: value } : section
+        section._id === id ? { ...section, [field]: value } : section
       )
     );
   };
 
-  // Add new section
-  const handleAddSection = () => {
+  // Add new section - Calls CREATE API
+  const handleAddSection = async () => {
     if (!newSection.title.trim() || !newSection.content.trim()) {
       alert('Please enter both title and content for the new section');
       return;
     }
 
-    const newId = `section${Date.now()}`;
-    const newOrder = privacyPolicyContent.length + 1;
-
-    const newSectionItem = {
-      id: newId,
+    const newSectionData = {
+      type: 'privacy_policy', // Static field as per your API requirement
       title: newSection.title,
-      content: newSection.content,
-      isEditing: false,
-      order: newOrder
-    };
-
-    setPrivacyPolicyContent(prev => [...prev, newSectionItem]);
-
-    // Reset new section form
-    setNewSection({
-      title: '',
-      content: '',
-      isEditing: true
-    });
-  };
-
-  // Delete a section
-  const handleDeleteSection = (id: any) => {
-    if (privacyPolicyContent.length <= 1) {
-      alert('You must have at least one section');
-      return;
-    }
-
-    const confirmDelete = window.confirm('Are you sure you want to delete this section?');
-    if (!confirmDelete) return;
-
-    setPrivacyPolicyContent(prev =>
-      prev.filter(section => section.id !== id)
-    );
-  };
-
-  // Move section up
-  const handleMoveUp = (index: any) => {
-    if (index === 0) return;
-
-    setPrivacyPolicyContent(prev => {
-      const newSections = [...prev];
-      const temp = newSections[index];
-      newSections[index] = newSections[index - 1];
-      newSections[index - 1] = temp;
-
-      // Update order numbers
-      return newSections.map((section, idx) => ({
-        ...section,
-        order: idx + 1
-      }));
-    });
-  };
-
-  // Move section down
-  const handleMoveDown = (index: any) => {
-    if (index === privacyPolicyContent.length - 1) return;
-
-    setPrivacyPolicyContent(prev => {
-      const newSections = [...prev];
-      const temp = newSections[index];
-      newSections[index] = newSections[index + 1];
-      newSections[index + 1] = temp;
-
-      // Update order numbers
-      return newSections.map((section, idx) => ({
-        ...section,
-        order: idx + 1
-      }));
-    });
-  };
-
-  // Save all changes
-  const handleSaveAll = async () => {
-    // Validate all sections
-    const hasEmptySections = privacyPolicyContent.some(section =>
-      !section.title.trim() || !section.content.trim()
-    );
-
-    if (hasEmptySections) {
-      alert('Please fill in all section titles and content');
-      return;
-    }
-
-    const dataToSave = {
-      sections: privacyPolicyContent.map(({ isEditing, ...rest }) => rest),
-      lastUpdated: new Date().toISOString()
+      content: newSection.content
     };
 
     try {
-      // Example API call
-      // const response = await fetch('/api/privacy-policy', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify(dataToSave),
-      // });
+      const response = await createPrivacy(newSectionData).unwrap();
 
-      console.log('Privacy Policy content to save:', dataToSave);
-      alert('Privacy Policy saved successfully!');
-
-      // Exit edit mode for all sections
-      setPrivacyPolicyContent(prev =>
-        prev.map(section => ({ ...section, isEditing: false }))
-      );
-    } catch (error) {
-      console.error('Error saving privacy policy:', error);
-      alert('Error saving privacy policy');
-    }
-  };
-
-  // Reset to initial state
-  const handleReset = () => {
-    const confirmReset = window.confirm(
-      'Are you sure you want to reset all changes? This action cannot be undone.'
-    );
-
-    if (confirmReset) {
-      setPrivacyPolicyContent(initialSections);
+      // Reset new section form
       setNewSection({
         title: '',
         content: '',
         isEditing: true
       });
+      // Refetch the updated list
+      refetch();
+
+      toast.success(response.message || 'Section added successfully!');
+    } catch (error) {
+      console.error('Error creating privacy policy:', error);
+      toast.error('Error adding section. Please try again.');
     }
   };
 
-  // Toggle preview mode
-  const togglePreviewMode = () => {
-    setIsPreviewMode(!isPreviewMode);
-  };
+  // Save an individual section - Calls UPDATE API
+  const handleSaveSection = async (section: PrivacyPolicySection) => {
+    if (!section.title.trim() || !section.content.trim()) {
+      alert('Both title and content are required');
+      return;
+    }
 
-  // Load saved data on component mount
-  useEffect(() => {
-    const fetchSavedData = async () => {
-      try {
-        // const response = await fetch('/api/privacy-policy');
-        // const data = await response.json();
-        // if (data && data.sections) {
-        //   const sectionsWithEditState = data.sections.map(section => ({
-        //     ...section,
-        //     isEditing: false
-        //   }));
-        //   setPrivacyPolicyContent(sectionsWithEditState);
-        // }
-      } catch (error) {
-        console.error('Error loading saved data:', error);
-      }
+    const updateData = {
+      type: 'privacy_policy', // Static field as per your API requirement
+      title: section.title,
+      content: section.content
     };
 
-    fetchSavedData();
-  }, []);
+    try {
+      const response = await updatePrivacy({ data: updateData, id: section._id }).unwrap();
+      togglePrivacyPolicyEditing(section._id); // Exit edit mode
+      toast.success(response.message || 'Section updated successfully!');
+    } catch (error) {
+      console.error('Error updating privacy policy:', error);
+      toast.error('Error updating section. Please try again.');
+    }
+  };
+
+  // Delete a section - Calls DELETE API
+  const handleDeleteSection = async (id: string) => {
+    if (privacyPolicyContent.length <= 1) {
+      toast.error('You must have at least one section');
+      return;
+    }
+
+
+    try {
+      await deletePrivacy(id).unwrap();
+      refetch(); // Refetch the updated list
+      toast.success('Section deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting privacy policy:', error);
+      toast.error('Error deleting section. Please try again.');
+    }
+  };
 
   return (
     <div>
@@ -258,9 +172,13 @@ const PrivacyPolicyContent = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
           <div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">Privacy Policy Content</h3>
-            <p className="text-sm text-gray-600">Manage the content for the "Privacy Policy" page.</p>
+            <p className="text-sm text-gray-600">Manage the content for the &quot;Privacy Policy&quot; page.</p>
+            {apiResponse?.data && (
+              <p className="text-xs text-gray-500 mt-1">
+                {apiResponse.data.length} section(s) loaded
+              </p>
+            )}
           </div>
-
 
         </div>
 
@@ -269,30 +187,32 @@ const PrivacyPolicyContent = () => {
           <div className="space-y-6 p-4 border border-gray-200 rounded-lg">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Privacy Policy</h2>
-              <p className="text-gray-600">Last updated: {new Date().toLocaleDateString()}</p>
+              <p className="text-gray-600">
+                Last updated: {new Date().toLocaleDateString()}
+              </p>
             </div>
 
             <div className="space-y-6">
-              {privacyPolicyContent.map((item, index) => (
-                <div key={item.id} className="space-y-3">
-                  <h3 className="text-xl font-semibold text-gray-900">
-                    {index + 1}. {item.title}
-                  </h3>
+              {privacyPolicyContent.map((item) => (
+                <div key={item._id} className="space-y-3">
                   <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
                     {item.content}
                   </p>
+                  {item.updatedAt && (
+                    <p className="text-xs text-gray-500">
+                      Last updated: {new Date(item.updatedAt).toLocaleDateString()}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
           </div>
         ) : (
           <>
-            {/* Existing Sections */}
+            {/* Existing Sections from API */}
             <div className="space-y-4 mb-8">
-              {privacyPolicyContent.map((item, index) => (
-                <div key={item.id} className="border border-gray-200 rounded-lg p-4 space-y-3 hover:border-purple-300 transition-colors">
-
-
+              {privacyPolicyContent.map((item) => (
+                <div key={item._id} className="border border-gray-200 rounded-lg p-4 space-y-3 hover:border-purple-300 transition-colors">
                   {item.isEditing ? (
                     <div className="space-y-3">
                       <div>
@@ -303,10 +223,11 @@ const PrivacyPolicyContent = () => {
                         <input
                           type="text"
                           value={item.title}
-                          onChange={(e) => handlePrivacyPolicyChange(item.id, e.target.value, 'title')}
+                          onChange={(e) => handlePrivacyPolicyChange(item._id, e.target.value, 'title')}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                           placeholder="Enter section title"
                           maxLength={100}
+                          disabled={isLoading}
                         />
                       </div>
                       <div>
@@ -316,30 +237,32 @@ const PrivacyPolicyContent = () => {
                         </label>
                         <Textarea
                           value={item.content}
-                          onChange={(e) => handlePrivacyPolicyChange(item.id, e.target.value, 'content')}
+                          onChange={(e) => handlePrivacyPolicyChange(item._id, e.target.value, 'content')}
                           className="min-h-[120px] w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                           placeholder="Enter section content"
                           maxLength={2000}
+                          disabled={isLoading}
                         />
                       </div>
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <h5 className="font-medium text-gray-800 text-lg">{item.title}</h5>
-                      <p className="text-gray-600 whitespace-pre-wrap">{item.content}</p>
+                      <div>
+                        <h5 className="font-medium text-gray-800 text-lg">{item.title}</h5>
+                        <p className="text-gray-600 whitespace-pre-wrap">{item.content}</p>
+                      </div>
                     </div>
                   )}
-                  <div className="flex items-center justify-between">
-                    <div className='flex justify-center  w-full'>
 
-                    </div>
+                  <div className="flex items-center justify-between pt-2">
+                    <div className="flex justify-center w-full"></div>
                     <div className="flex items-center gap-2">
-
                       {/* Delete button */}
                       <button
                         type="button"
-                        onClick={() => handleDeleteSection(item.id)}
-                        className="p-1.5 text-red-500 cursor-pointer hover:text-red-700 hover:bg-red-50 rounded"
+                        onClick={() => handleDeleteSection(item._id)}
+                        disabled={isLoading}
+                        className="p-1.5 text-red-500 cursor-pointer hover:text-red-700 hover:bg-red-50 rounded disabled:text-gray-300 disabled:cursor-not-allowed"
                         title="Delete section"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -347,31 +270,43 @@ const PrivacyPolicyContent = () => {
 
                       {/* Edit/Save buttons */}
                       {item.isEditing ? (
-                        <div className="flex gap-2 justify-end w-full">
+                        <div className="flex gap-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => togglePrivacyPolicyEditing(item.id)}
+                            onClick={() => togglePrivacyPolicyEditing(item._id)}
                             className="flex items-center gap-1 cursor-pointer text-gray-600"
+                            disabled={isLoading}
                           >
                             <X className="w-4 h-4" />
                             Cancel
                           </Button>
                           <Button
                             size="sm"
-                            onClick={() => togglePrivacyPolicyEditing(item.id)}
+                            onClick={() => handleSaveSection(item)}
                             className="bg-purple-600 hover:bg-purple-700 flex items-center gap-1"
+                            disabled={isLoading}
                           >
-                            <Check className="w-4 h-4" />
-                            Save
+                            {isUpdating ? (
+                              <span className="flex items-center">
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                                Saving...
+                              </span>
+                            ) : (
+                              <>
+                                <Check className="w-4 h-4" />
+                                Save
+                              </>
+                            )}
                           </Button>
                         </div>
                       ) : (
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => togglePrivacyPolicyEditing(item.id)}
+                          onClick={() => togglePrivacyPolicyEditing(item._id)}
                           className="text-purple-600 hover:text-purple-700 flex items-center gap-1"
+                          disabled={isLoading}
                         >
                           <Edit2 className="w-4 h-4" />
                           Edit
@@ -380,11 +315,7 @@ const PrivacyPolicyContent = () => {
                     </div>
                   </div>
                 </div>
-
-
               ))}
-
-
             </div>
 
             {/* Add New Section */}
@@ -407,6 +338,7 @@ const PrivacyPolicyContent = () => {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     placeholder="e.g., Cookies and Tracking"
                     maxLength={100}
+                    disabled={isLoading}
                   />
                 </div>
                 <div>
@@ -420,6 +352,7 @@ const PrivacyPolicyContent = () => {
                     className="min-h-[120px] w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                     placeholder="Enter detailed content for this section..."
                     maxLength={2000}
+                    disabled={isLoading}
                   />
                 </div>
 
@@ -427,25 +360,35 @@ const PrivacyPolicyContent = () => {
                   <Button
                     onClick={handleAddSection}
                     className="bg-purple-600 hover:bg-purple-700 flex items-center gap-2"
-                    disabled={!newSection.title.trim() || !newSection.content.trim()}
+                    disabled={!newSection.title.trim() || !newSection.content.trim() || isLoading}
                   >
-                    <Plus className="w-4 h-4" />
-                    Add Section
+                    {isCreating ? (
+                      <span className="flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Adding...
+                      </span>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        Add Section
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
             </div>
 
             {/* Save All Button */}
-            <div className="flex justify-end border-t border-gray-100 pt-6">
-              <Button
-                onClick={handleSaveAll}
-                className="bg-purple-600 hover:bg-purple-700 flex items-center gap-2 px-8"
-                size="lg"
-              >
-                <Save className="w-5 h-5" />
-                Save All Changes
-              </Button>
+            <div className="flex justify-between border-t border-gray-100 pt-6">
+              <div className="text-sm text-gray-500">
+                {isLoading && (
+                  <span className="flex items-center">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-purple-600 mr-2"></div>
+                    Processing...
+                  </span>
+                )}
+              </div>
+
             </div>
           </>
         )}

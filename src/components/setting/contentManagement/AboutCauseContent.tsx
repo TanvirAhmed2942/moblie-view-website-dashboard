@@ -1,4 +1,5 @@
 import { Upload, X } from 'lucide-react';
+import Image from 'next/image';
 import { ChangeEvent, useEffect, useState } from 'react'; // useEffect import kiya
 import toast from 'react-hot-toast';
 import { useCreateContentMutation, useGetContentQuery } from '../../../features/settings/settingsApi';
@@ -44,8 +45,8 @@ const AboutCauseContent = () => {
     aboutImages: [], // Array of File objects
   });
 
-  const { data, isLoading: isLoadingContent, refetch } = useGetContentQuery({});
-  const [createWebsite, { isLoading }] = useCreateContentMutation();
+  const { data, refetch } = useGetContentQuery({});
+  const [createWebsite] = useCreateContentMutation();
 
   // SIRF YAHAN DEFAULT VALUES SET KIYE HAI
   useEffect(() => {
@@ -168,7 +169,7 @@ const AboutCauseContent = () => {
 
     // Add gallery images
     if (uploadedFiles.aboutImages.length > 0) {
-      uploadedFiles.aboutImages.forEach((file, index) => {
+      uploadedFiles.aboutImages.forEach((file) => {
         contentData.append('gallery', file);
       });
     }
@@ -194,7 +195,7 @@ const AboutCauseContent = () => {
     <div>
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h3 className="text-lg font-medium text-gray-900 mb-2">About the Cause Content</h3>
-        <p className="text-sm text-gray-600 mb-6">Update the content for the "About the Cause" page on your website.</p>
+        <p className="text-sm text-gray-600 mb-6">Update the content for the &quotAbout the Cause&quot page on your website.</p>
 
         <div className="grid grid-cols-3 gap-6 mb-6">
           {/* Title */}
@@ -235,9 +236,11 @@ const AboutCauseContent = () => {
             <div className="flex gap-2 mb-2">
               {selectedImages.aboutImages.map((img, idx) => ( // YAHAN DEFAULT GALLERY IMAGES
                 <div key={idx} className="relative w-16 h-16 group">
-                  <img
+                  <Image
                     src={img}
                     alt={`About ${idx + 1}`}
+                    width={1000}
+                    height={1000}
                     className="w-full h-full object-cover rounded-lg border border-gray-200"
                   />
                   <button

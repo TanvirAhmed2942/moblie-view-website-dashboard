@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from 'react-hot-toast';
 import { useResetPasswordMutation } from '../../features/auth/authApi';
+import { RTKError } from '../../utils/type';
 
 interface ResetPasswordForm {
   newPassword: string;
@@ -61,9 +62,9 @@ export default function ResetPassword() {
       console.log("Reset password response:", response);
       toast.success(response.message || 'Password has been reset successfully');
       router.push('/auth/login');
-    } catch (error) {
-      console.error("Reset password error:", error);
-      toast.error(error?.data?.message || 'Failed to reset password. Please try again.');
+    } catch (error: unknown) {
+      const err = error as RTKError;
+      toast.error(err?.data?.message || 'Failed to reset password. Please try again.');
     }
 
 

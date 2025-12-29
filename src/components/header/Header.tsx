@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { useSocketNotifications } from "@/hooks/useSocketNotifications";
+
 import useToast from "@/hooks/useToast";
 import {
   useGetAdminByAuthIdQuery,
@@ -36,8 +36,6 @@ export default function Header() {
   const admin = adminResponse?.data;
   console.log("admin", admin);
 
-  // Socket notifications
-  const { unreadCount, isConnected } = useSocketNotifications();
 
   const handleLogout = async () => {
     try {
@@ -66,14 +64,14 @@ export default function Header() {
             }}
           >
             <IoIosNotificationsOutline className="text-black" />
-            {unreadCount > 0 && (
-              <Badge
-                className="h-5 min-w-5 rounded-full px-1 font-mono tabular-nums"
-                variant="destructive"
-              >
-                {unreadCount > 99 ? "99+" : unreadCount}
-              </Badge>
-            )}
+
+            <Badge
+              className="h-5 min-w-5 rounded-full px-1 font-mono tabular-nums"
+              variant="destructive"
+            >
+              99
+            </Badge>
+
             {/* {!isConnected && (
               <div
                 className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full border-2 border-white"

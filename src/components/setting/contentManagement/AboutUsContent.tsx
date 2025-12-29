@@ -1,12 +1,37 @@
 import { Upload } from 'lucide-react';
-import { useEffect, useState } from 'react'; // useEffect import kiya
+import Image from 'next/image';
+import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useCreateContentMutation, useGetContentQuery } from '../../../features/settings/settingsApi';
 import { baseURL } from '../../../utils/BaseURL';
 
+// Define types for content
+interface ContentState {
+  introduction: string;
+  foundersQuote: string;
+  ourMission: string;
+  howWeOperate: string;
+}
+
+interface SelectedImagesState {
+  founderImage: string;
+}
+
+interface UploadedFilesState {
+  founderImage: File | null;
+}
+
+interface ApiResponseData {
+  introduction?: string;
+  foundersQuote?: string;
+  ourMission?: string;
+  howWeOperate?: string;
+  founders?: Array<{ image?: string }>;
+}
+
 const AboutUsContent = () => {
   // State for text content
-  const [content, setContent] = useState({
+  const [content, setContent] = useState<ContentState>({
     introduction: '',
     foundersQuote: '',
     ourMission: '',
@@ -14,24 +39,24 @@ const AboutUsContent = () => {
   });
 
   // State for images
-  const [selectedImages, setSelectedImages] = useState({
+  const [selectedImages, setSelectedImages] = useState<SelectedImagesState>({
     founderImage: '',
   });
 
   // State for uploaded files
-  const [uploadedFiles, setUploadedFiles] = useState({
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFilesState>({
     founderImage: null,
   });
 
-  const { data, isLoading: isLoadingContent, refetch } = useGetContentQuery({});
-  const [createWebsite, { isLoading }] = useCreateContentMutation();
+  const { data, refetch } = useGetContentQuery({});
+  const [createWebsite] = useCreateContentMutation();
 
-  // SIRF YAHAN DEFAULT VALUES SET KIYE HAI
+  // Load default values from API
   useEffect(() => {
     if (data?.success && data?.data) {
-      const apiData = data.data;
+      const apiData = data.data as ApiResponseData;
 
-      // Text content set kiya
+      // Set text content
       setContent({
         introduction: apiData.introduction || '',
         foundersQuote: apiData.foundersQuote || '',
@@ -39,18 +64,19 @@ const AboutUsContent = () => {
         howWeOperate: apiData.howWeOperate || '',
       });
 
-      // Founder's image set kiya
+      // Set founder's image
       if (apiData.founders && apiData.founders.length > 0 && apiData.founders[0].image) {
         setSelectedImages(prev => ({
           ...prev,
-          founderImage: baseURL + apiData.founders[0].image
+          founderImage: baseURL + (apiData?.founders?.[0]?.image ?? '')
+
         }));
       }
     }
   }, [data]);
 
   // Handle text input changes
-  const handleTextChange = (field: any, value: any) => {
+  const handleTextChange = (field: keyof ContentState, value: string) => {
     setContent(prev => ({
       ...prev,
       [field]: value
@@ -58,8 +84,8 @@ const AboutUsContent = () => {
   };
 
   // Handle image upload
-  const handleImageUpload = (imageType: any, event: any) => {
-    const file = event.target.files[0];
+  const handleImageUpload = (imageType: keyof SelectedImagesState, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
 
     if (!file) return;
 
@@ -98,7 +124,7 @@ const AboutUsContent = () => {
   };
 
   // Handle form submission
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const data = new FormData();
@@ -130,7 +156,7 @@ const AboutUsContent = () => {
     <div>
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h3 className="text-lg font-medium text-gray-900 mb-2">About Us Content</h3>
-        <p className="text-sm text-gray-600 mb-6">Update the content for the "About Us" page on your website.</p>
+        <p className="text-sm text-gray-600 mb-6">Update the content for the &quot;About Us&quot; page on your website.</p>
 
         <div className="grid grid-cols-3 gap-6 mb-6">
           {/* Introduction */}
@@ -140,7 +166,7 @@ const AboutUsContent = () => {
               <span className="text-xs text-gray-500 ml-1">({content.introduction.length}/500)</span>
             </label>
             <textarea
-              value={content.introduction} // YAHAN DEFAULT VALUE
+              value={content.introduction}
               onChange={(e) => handleTextChange('introduction', e.target.value)}
               placeholder="How it started, our humble joy philanthropy..."
               className="w-full px-4 py-3 bg-purple-50 border-0 rounded-lg h-24 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
@@ -151,11 +177,11 @@ const AboutUsContent = () => {
           {/* Founder's Quote */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Founder's Quote
+              Founder&apos;s Quote
               <span className="text-xs text-gray-500 ml-1">({content.foundersQuote.length}/200)</span>
             </label>
             <textarea
-              value={content.foundersQuote} // YAHAN DEFAULT VALUE
+              value={content.foundersQuote}
               onChange={(e) => handleTextChange('foundersQuote', e.target.value)}
               placeholder="We started this for people to make..."
               className="w-full px-4 py-3 bg-purple-50 border-0 rounded-lg h-24 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
@@ -165,13 +191,15 @@ const AboutUsContent = () => {
 
           {/* Founder's Image */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Founder's Image</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Founder&apos;s Image</label>
             <div className="mb-2">
-              {selectedImages.founderImage ? ( // YAHAN DEFAULT IMAGE
+              {selectedImages.founderImage ? (
                 <div className="relative">
-                  <img
+                  <Image
                     src={selectedImages.founderImage}
                     alt="Founder"
+                    width={1000}
+                    height={1000}
                     className="w-full h-24 object-cover rounded-lg"
                   />
                   <button
@@ -211,7 +239,7 @@ const AboutUsContent = () => {
               <span className="text-xs text-gray-500 ml-1">({content.ourMission.length}/300)</span>
             </label>
             <textarea
-              value={content.ourMission} // YAHAN DEFAULT VALUE
+              value={content.ourMission}
               onChange={(e) => handleTextChange('ourMission', e.target.value)}
               placeholder="Our mission is to connect brands in symbiotic..."
               className="w-full px-4 py-3 bg-purple-50 border-0 rounded-lg h-24 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
@@ -226,7 +254,7 @@ const AboutUsContent = () => {
               <span className="text-xs text-gray-500 ml-1">({content.howWeOperate.length}/400)</span>
             </label>
             <textarea
-              value={content.howWeOperate} // YAHAN DEFAULT VALUE
+              value={content.howWeOperate}
               onChange={(e) => handleTextChange('howWeOperate', e.target.value)}
               placeholder="It is important to each charitable money..."
               className="w-full px-4 py-3 bg-purple-50 border-0 rounded-lg h-24 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Upload, X } from "lucide-react";
+import Image from 'next/image';
 import React, { useRef, useState } from "react";
 import toast from 'react-hot-toast';
 
@@ -278,9 +279,11 @@ function AboutTheCauseForm({
             <div className="space-y-2">
               <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-gray-300 bg-gray-100">
                 {/* Use regular img tag instead of Next.js Image for base64 */}
-                <img
+                <Image
                   src={formData.imagePreview}
                   alt="Cause preview"
+                  width={1000}
+                  height={1000}
                   className="w-full h-full object-cover"
                 />
                 <button

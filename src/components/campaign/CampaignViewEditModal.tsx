@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useUpdateCampaignMutation } from '../../features/campaign/campaignApi';
 import { baseURL } from '../../utils/BaseURL';
+import { RTKError } from '../../utils/type';
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -18,6 +19,7 @@ import { Textarea } from "../ui/textarea";
 
 export interface CampaignData {
   id: string;
+  _id?: string;
   organizationName: string;
   campaignName: string;
   websiteUrl: string;
@@ -62,7 +64,7 @@ export interface CampaignData {
 interface CampaignViewEditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  campaign: any; // Changed to accept raw API response
+  campaign: CampaignData | null; // Changed from any
   mode: "view" | "edit";
   onSuccess?: () => void;
 }
@@ -212,10 +214,11 @@ function CampaignViewEditModal({
       }
 
       onClose();
-    } catch (error: any) {
-      console.error('Error updating campaign:', error);
-      toast.error(error?.data?.message || "Failed to update campaign. Please try again.");
-    } finally {
+    } catch (error: unknown) {
+      const err = error as RTKError;
+      toast.error(err?.data?.message || "Failed to update campaign. Please try again.");
+    }
+    finally {
       setIsSaving(false);
     }
   };
@@ -508,7 +511,7 @@ function CampaignViewEditModal({
                       </select>
                     ) : (
                       <p className="mt-1 text-gray-900">
-                        {formData.campaignStatus?.charAt(0).toUpperCase() + formData.campaignStatus?.slice(1)}
+                        {formData.campaignStatus ? formData.campaignStatus.charAt(0).toUpperCase() + formData.campaignStatus.slice(1) : ''}
                       </p>
                     )}
                   </div>

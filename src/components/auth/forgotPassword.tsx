@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import toast from 'react-hot-toast';
 import { useEmailForgotPasswordMutation } from '../../features/auth/authApi';
+import { RTKError } from '../../utils/type';
 import { forgetPasswordFormType } from "./auth.types";
 
 export default function ForgotPassword() {
@@ -32,9 +33,9 @@ export default function ForgotPassword() {
       console.log("Forgot password response:", response);
       router.push(`/auth/verify-email?email=${data.email.trim()}`);
       toast.success(response.message || 'Verification code sent to your email');
-    } catch (error) {
-      console.error("Forgot password error:", error);
-      toast.error(error?.data?.message || 'Failed to send verification code. Please try again.');
+    } catch (error: unknown) {
+      const err = error as RTKError;
+      toast.error(err?.data?.message || 'Failed to send verification code. Please try again.');
     }
 
   };

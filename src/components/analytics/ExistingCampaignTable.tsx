@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -8,9 +8,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { AlertCircle } from "lucide-react";
 import Link from "next/link";
 
 interface Campaign {
@@ -91,10 +88,10 @@ function ExistingCampaignTable() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-gray-900">
-          Existing Campaign Details
+          Campaign Overview
         </h2>
         <Link
-          href="#"
+          href="/campaigns"
           className="text-green-600 hover:text-green-700 font-medium text-sm"
         >
           View All
@@ -129,9 +126,6 @@ function ExistingCampaignTable() {
               <TableHead className="text-gray-700 font-semibold">
                 Campaign Progress
               </TableHead>
-              <TableHead className="text-gray-700 font-semibold">
-                Action
-              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -158,16 +152,6 @@ function ExistingCampaignTable() {
                       />
                     </div>
                   </div>
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="bg-red-600 hover:bg-red-700 text-white"
-                  >
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    Set Alert
-                  </Button>
                 </TableCell>
               </TableRow>
             ))}

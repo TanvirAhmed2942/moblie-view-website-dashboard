@@ -26,7 +26,7 @@ const Schedule = () => {
   });
 
   // Handle auto-send schedule changes
-  const handleAutoSendChange = (field: any, value: any) => {
+  const handleAutoSendChange = (field: keyof typeof autoSendSchedule, value: string) => {
     setAutoSendSchedule(prev => ({
       ...prev,
       [field]: value
@@ -34,7 +34,7 @@ const Schedule = () => {
   };
 
   // Handle recipient settings changes
-  const handleRecipientChange = (field: any, value: any) => {
+  const handleRecipientChange = (field: keyof typeof recipientSettings, value: string | boolean) => {
     setRecipientSettings(prev => ({
       ...prev,
       [field]: value

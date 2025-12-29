@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ChangeEvent, useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useCreateContentMutation, useGetContentQuery } from '../../../features/settings/settingsApi';
 
 interface LevelOption {
@@ -16,16 +17,13 @@ interface LevelOption {
 }
 
 interface LevelContent {
+  level: number;
   title: string;
   description: string;
   benefits: string;
-  targetEmphasis: string;
-  targetDuration: string;
-  targetLevelPasting: string;
-}
-
-interface LevelContents {
-  [key: string]: LevelContent;
+  targetInvitation: string;
+  targetDonation: string;
+  targetRaising: string;
 }
 
 const DownlineContent = () => {
@@ -38,70 +36,86 @@ const DownlineContent = () => {
     { value: "level5", label: "Level 5", level: 5 },
   ];
 
-  const { data, isLoading: isLoadingContent, refetch } = useGetContentQuery({});
-  const [createWebsite, { isLoading }] = useCreateContentMutation();
+  const { data: apiData, refetch } = useGetContentQuery({});
+  const [DownlineContent, { isLoading }] = useCreateContentMutation();
 
-  // State for selected level and its content
-  const [selectedLevel, setSelectedLevel] = useState<string>("level5");
-  const [levelContents, setLevelContents] = useState<LevelContents>({
-    level5: {
-      title: "",
-      description: "",
-      benefits: "",
-      targetEmphasis: "",
-      targetDuration: "",
-      targetLevelPasting: "",
-    },
-    level4: {
-      title: "",
-      description: "",
-      benefits: "",
-      targetEmphasis: "",
-      targetDuration: "",
-      targetLevelPasting: "",
-    },
-    level3: {
-      title: "",
-      description: "",
-      benefits: "",
-      targetEmphasis: "",
-      targetDuration: "",
-      targetLevelPasting: "",
-    },
-    level2: {
-      title: "",
-      description: "",
-      benefits: "",
-      targetEmphasis: "",
-      targetDuration: "",
-      targetLevelPasting: "",
-    },
-    level1: {
-      title: "",
-      description: "",
-      benefits: "",
-      targetEmphasis: "",
-      targetDuration: "",
-      targetLevelPasting: "",
-    },
+  // State for selected level
+  const [selectedLevel, setSelectedLevel] = useState<string>("level1");
+
+  // State for current level's content
+  const [currentContent, setCurrentContent] = useState<LevelContent>({
+    level: 1,
+    title: "",
+    description: "",
+    benefits: "",
+    targetInvitation: "",
+    targetDonation: "",
+    targetRaising: "",
   });
 
-  // Get current level content
-  const currentContent = levelContents[selectedLevel];
+  // SIRF YAHAN DEFAULT VALUES SET KIYE HAI
+  useEffect(() => {
+    if (apiData?.success && apiData?.data?.userLevelStrategy) {
+      const userLevels = apiData.data.userLevelStrategy;
+
+      // Level 1 ke liye data set karo (L1)
+      const level1Data = userLevels.find((level: { level: string }) => level.level === "L1");
+
+      if (level1Data) {
+        setCurrentContent({
+          level: 1,
+          title: level1Data.title || "",
+          description: level1Data.description || "",
+          benefits: Array.isArray(level1Data.benefits) ? level1Data.benefits.join(", ") : level1Data.benefits || "",
+          targetInvitation: level1Data.targetInvitation?.toString() || "",
+          targetDonation: level1Data.targetDonation?.toString() || "",
+          targetRaising: level1Data.targetRaising?.toString() || "",
+        });
+      }
+    }
+  }, [apiData]);
 
   // Handle level selection change
   const handleLevelChange = (value: string) => {
     setSelectedLevel(value);
+    const levelNumber = parseInt(value.replace('level', ''));
+
+    // API se selected level ka data set karo
+    if (apiData?.success && apiData?.data?.userLevelStrategy) {
+      const userLevels = apiData.data.userLevelStrategy;
+      const levelKey = `L${levelNumber}`;
+      const levelData = userLevels.find((level: { level: string }) => level.level === levelKey);
+
+      if (levelData) {
+        setCurrentContent({
+          level: levelNumber,
+          title: levelData.title || "",
+          description: levelData.description || "",
+          benefits: Array.isArray(levelData.benefits) ? levelData.benefits.join(", ") : levelData.benefits || "",
+          targetInvitation: levelData.targetInvitation?.toString() || "",
+          targetDonation: levelData.targetDonation?.toString() || "",
+          targetRaising: levelData.targetRaising?.toString() || "",
+        });
+      } else {
+        // Agar API mein data nahi hai to reset karo
+        setCurrentContent({
+          level: levelNumber,
+          title: "",
+          description: "",
+          benefits: "",
+          targetInvitation: "",
+          targetDonation: "",
+          targetRaising: "",
+        });
+      }
+    }
   };
 
   // Handle text input changes
   const handleInputChange = (field: keyof LevelContent, value: string) => {
-    setLevelContents(prev => ({
+    setCurrentContent(prev => ({
       ...prev,
-      [selectedLevel]: {
-        ...prev[selectedLevel],
-        [field]: value
-      }
+      [field]: value
     }));
   };
 
@@ -109,7 +123,10 @@ const DownlineContent = () => {
   const handleNumberInput = (field: keyof LevelContent, value: string) => {
     // Allow only numbers for duration
     const cleanedValue = value.replace(/[^0-9]/g, '');
-    handleInputChange(field, cleanedValue);
+    setCurrentContent(prev => ({
+      ...prev,
+      [field]: cleanedValue
+    }));
   };
 
   // Format currency value
@@ -127,50 +144,28 @@ const DownlineContent = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const dataToSave = {
-      selectedLevel,
-      levelContents
-    };
+    const data = new FormData();
+    data.append('data', JSON.stringify(currentContent));
 
     try {
-      // Example API call
-      // const response = await fetch('/api/downline', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify(dataToSave),
-      // });
+      const response = await DownlineContent(data).unwrap();
+      refetch();
+      toast.success(response.message || 'Settings saved successfully');
 
-      console.log('Downline content to save:', dataToSave);
-
-      // Show success message
-      alert(`Level ${selectedLevel.replace('level', '')} content saved successfully!`);
     } catch (error) {
       console.error('Error saving content:', error);
-      alert('Error saving content');
+      toast.error('Error saving content');
     }
   };
 
-
-  // Load saved data on component mount
+  // Update currentContent level when selectedLevel changes
   useEffect(() => {
-    // Example: Load saved data from API
-    const fetchSavedData = async () => {
-      try {
-        // const response = await fetch('/api/downline');
-        // const data = await response.json();
-        // if (data) {
-        //   setLevelContents(data.levelContents || levelContents);
-        //   setSelectedLevel(data.selectedLevel || "level5");
-        // }
-      } catch (error) {
-        console.error('Error loading saved data:', error);
-      }
-    };
-
-    fetchSavedData();
-  }, []);
+    const levelNumber = parseInt(selectedLevel.replace('level', ''));
+    setCurrentContent(prev => ({
+      ...prev,
+      level: levelNumber
+    }));
+  }, [selectedLevel]);
 
   return (
     <div>
@@ -178,7 +173,7 @@ const DownlineContent = () => {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">Downline Content</h3>
-            <p className="text-sm text-gray-600">Update the content for the "Downline" page on your website.</p>
+            <p className="text-sm text-gray-600">Update the content for the &quot;Downline&quot; page on your website.</p>
           </div>
 
           <div className="flex items-center gap-2">
@@ -201,9 +196,6 @@ const DownlineContent = () => {
                   <SelectItem key={option.value} value={option.value}>
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{option.label}</span>
-                      {levelContents[option.value]?.title && (
-                        <span className="text-xs text-gray-500">({levelContents[option.value].title})</span>
-                      )}
                     </div>
                   </SelectItem>
                 ))}
@@ -219,7 +211,7 @@ const DownlineContent = () => {
             <input
               value={currentContent.title || ""}
               onChange={(e: ChangeEvent<HTMLInputElement>) => handleInputChange('title', e.target.value)}
-              placeholder="Passes Waved"
+              placeholder="Ocean Wave"
               className="w-full px-4 py-2 bg-purple-50 border-0 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
               maxLength={100}
             />
@@ -235,7 +227,7 @@ const DownlineContent = () => {
             <Textarea
               value={currentContent.description || ""}
               onChange={(e: ChangeEvent<HTMLTextAreaElement>) => handleInputChange('description', e.target.value)}
-              placeholder="Broken Down"
+              placeholder="Impact Level"
               className="w-full bg-purple-50 border-0 h-20 text-sm focus:ring-2 focus:ring-purple-500"
               maxLength={500}
             />
@@ -249,7 +241,7 @@ const DownlineContent = () => {
             <Textarea
               value={currentContent.benefits || ""}
               onChange={(e: ChangeEvent<HTMLTextAreaElement>) => handleInputChange('benefits', e.target.value)}
-              placeholder="Enter the benefits"
+              placeholder="Enter the benefits."
               className="w-full bg-purple-50 border-0 h-20 text-sm focus:ring-2 focus:ring-purple-500"
               maxLength={500}
             />
@@ -258,12 +250,12 @@ const DownlineContent = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Target Invitation
-              <span className="text-xs text-gray-500 ml-1">({currentContent.targetEmphasis?.length || 0}/100)</span>
+              <span className="text-xs text-gray-500 ml-1">({currentContent.targetInvitation?.length || 0}/100)</span>
             </label>
             <Textarea
-              value={currentContent.targetEmphasis || ""}
-              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => handleInputChange('targetEmphasis', e.target.value)}
-              placeholder="WWJD"
+              value={currentContent.targetInvitation || ""}
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => handleInputChange('targetInvitation', e.target.value)}
+              placeholder="70,000"
               className="w-full bg-purple-50 border-0 h-20 text-sm focus:ring-2 focus:ring-purple-500"
               maxLength={100}
             />
@@ -274,13 +266,12 @@ const DownlineContent = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Target Donation</label>
             <input
-              value={currentContent.targetDuration || ""}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => handleNumberInput('targetDuration', e.target.value)}
-              placeholder="1230"
+              value={currentContent.targetDonation || ""}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => handleNumberInput('targetDonation', e.target.value)}
+              placeholder="2,000"
               className="w-full px-4 py-2 bg-purple-50 border-0 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
               maxLength={5}
             />
-            <p className="text-xs text-gray-500 mt-1">Enter number of days</p>
           </div>
 
           <div>
@@ -288,35 +279,35 @@ const DownlineContent = () => {
             <div className="relative">
               <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
               <input
-                value={currentContent.targetLevelPasting || ""}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => handleNumberInput('targetLevelPasting', e.target.value)}
+                value={currentContent.targetRaising || ""}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => handleNumberInput('targetRaising', e.target.value)}
                 onBlur={(e: ChangeEvent<HTMLInputElement>) => {
                   if (e.target.value) {
-                    handleInputChange('targetLevelPasting', formatCurrency(e.target.value));
+                    const formatted = formatCurrency(e.target.value);
+                    handleInputChange('targetRaising', formatted);
                   }
                 }}
-                placeholder="23,000.00"
+                placeholder="2,00,000"
                 className="w-full pl-8 pr-4 py-2 bg-purple-50 border-0 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
               />
             </div>
-            <p className="text-xs text-gray-500 mt-1">Format: 23,000.00</p>
           </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex justify-between border-t border-gray-100 pt-6">
           <div className="flex gap-4">
-
+            {/* Add any left side buttons if needed */}
           </div>
 
           <div className="flex gap-4">
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={!currentContent.title?.trim()}
+              disabled={!currentContent.title?.trim() || isLoading}
               className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm font-medium"
             >
-              Save Content
+              {isLoading ? 'Saving...' : 'Save Content'}
             </button>
           </div>
         </div>

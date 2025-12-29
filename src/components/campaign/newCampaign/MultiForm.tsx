@@ -50,28 +50,42 @@ function MultiForm({
           // If this is the last step, submit all data
           console.log("Last step completed. All form data:", formData);
 
+          // Type guard helper
+          const getFormDataField = (obj: unknown, field: string): unknown => {
+            if (obj && typeof obj === 'object' && field in obj) {
+              return (obj as Record<string, unknown>)[field];
+            }
+            return undefined;
+          };
+
+          const org = formData.organization;
+          const contact = formData.contact;
+          const cause = formData.cause;
+          const settings = formData.settings;
+          const routing = formData.routing;
+
           const campaignData = {
-            organization_name: formData.organization?.organization_name,
-            organization_network: formData.organization?.organization_network,
-            organization_type: formData.organization?.organization_type,
-            organization_taxId: formData.organization?.organization_taxId,
-            organization_website: formData.organization?.organization_website,
-            organization_address: formData.organization?.organization_address,
-            contactPerson_name: formData.contact?.contactPerson_name,
-            contactPerson_email: formData.contact?.contactPerson_email,
-            contactPerson_phone: formData.contact?.contactPerson_phone,
-            cause_title: formData.cause?.cause_title,
-            cause_description: formData.cause?.cause_description,
-            cause_mission: formData.cause?.cause_mission,
-            title: formData.settings?.title,
-            address: formData.settings?.address,
-            description: formData.settings?.description,
-            donor_name: formData.settings?.donor_name,
-            targetAmount: formData.settings?.targetAmount ? Number(formData.settings.targetAmount) : 0,
-            startDate: formData.settings?.startDate,
-            endDate: formData.settings?.endDate,
-            dafPartner: formData.routing?.dafPartner,
-            internalTrackingId: formData.routing?.internalTrackingId,
+            organization_name: getFormDataField(org, 'organization_name'),
+            organization_network: getFormDataField(org, 'organization_network'),
+            organization_type: getFormDataField(org, 'organization_type'),
+            organization_taxId: getFormDataField(org, 'organization_taxId'),
+            organization_website: getFormDataField(org, 'organization_website'),
+            organization_address: getFormDataField(org, 'organization_address'),
+            contactPerson_name: getFormDataField(contact, 'contactPerson_name'),
+            contactPerson_email: getFormDataField(contact, 'contactPerson_email'),
+            contactPerson_phone: getFormDataField(contact, 'contactPerson_phone'),
+            cause_title: getFormDataField(cause, 'cause_title'),
+            cause_description: getFormDataField(cause, 'cause_description'),
+            cause_mission: getFormDataField(cause, 'cause_mission'),
+            title: getFormDataField(settings, 'title'),
+            address: getFormDataField(settings, 'address'),
+            description: getFormDataField(settings, 'description'),
+            donor_name: getFormDataField(settings, 'donor_name'),
+            targetAmount: getFormDataField(settings, 'targetAmount') ? Number(getFormDataField(settings, 'targetAmount')) : 0,
+            startDate: getFormDataField(settings, 'startDate'),
+            endDate: getFormDataField(settings, 'endDate'),
+            dafPartner: getFormDataField(routing, 'dafPartner'),
+            internalTrackingId: getFormDataField(routing, 'internalTrackingId'),
           };
 
           console.log("Final campaign data:", campaignData);
@@ -79,8 +93,9 @@ function MultiForm({
           const formDataToSend = new FormData();
           formDataToSend.append("data", JSON.stringify(campaignData));
 
-          if (formData.cause?.image) {
-            formDataToSend.append("image", formData.cause.image as File);
+          const causeImage = getFormDataField(cause, 'image');
+          if (causeImage instanceof File) {
+            formDataToSend.append("image", causeImage);
           }
 
           // Use async/await to handle the promise
@@ -88,17 +103,10 @@ function MultiForm({
           console.log("Campaign created successfully:", response);
           toast.success(response.message || "Campaign created successfully!");
           router.push("/campaigns");
-
-          // Show success message or redirect here
-          // Example: redirect or show success modal
-          // window.location.href = '/campaigns';
-          // or showSuccessNotification();
-
         }
       } catch (error) {
         console.error("Error in form submission:", error);
-        // Handle error (show error message to user)
-        // Example: showErrorNotification("Failed to create campaign");
+        toast.error("Failed to create campaign. Please try again.");
       }
     },
     onBack: onBack || (() => {
@@ -107,7 +115,7 @@ function MultiForm({
       }
     }),
     initialData: formData[currentForm.id],
-    isLoading: currentStep === steps.length && isLoading, // Pass loading state if on last step
+    isLoading: currentStep === steps.length && isLoading,
   } as Record<string, unknown>);
 
   return <div className="flex-1">{formComponent}</div>;

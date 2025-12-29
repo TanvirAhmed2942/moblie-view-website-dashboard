@@ -13,6 +13,7 @@ import { useForm } from "react-hook-form";
 import toast from 'react-hot-toast';
 import { useLoginMutation } from '../../features/auth/authApi';
 import { saveToken } from '../../utils/storage';
+import { RTKError } from '../../utils/type';
 import { Checkbox } from "../ui/checkbox";
 import { loginFormType } from "./auth.types";
 
@@ -128,17 +129,16 @@ export default function Login() {
     const password = data.password.trim();
 
     try {
-      const result: any = await Login({ email, password }).unwrap();
+      const result = await Login({ email, password }).unwrap();
       console.log("Login successful:", result);
       if (result.statusCode === 200) {
         router.push("/");
         toast.success(result.message || "Login successful!");
         saveToken(result.data.accessToken);
       }
-    } catch (error) {
-      console.error("Login failed:", error);
-      toast.error(error?.data?.message || "Login failed. Please try again.");
-
+    } catch (error: unknown) {
+      const err = error as RTKError;
+      toast.error(err?.data?.message || "Login failed. Please try again.");
     }
 
 

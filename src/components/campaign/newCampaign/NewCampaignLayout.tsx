@@ -59,7 +59,28 @@ function NewCampaignLayout() {
   });
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [createCampaign, { isLoading }] = useCreateCampaignMutation();
+  const [createCampaign] = useCreateCampaignMutation();
+
+  const handleFormDataChange = useCallback((stepId: string, data: unknown) => {
+    console.log(`Step ${stepId} data:`, data);
+
+    setFormData(prev => ({
+      ...prev,
+      [stepId]: data,
+    }));
+
+    // Clear errors for this step
+    setFormErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[stepId];
+      if (stepId === 'cause') delete newErrors.cause_description;
+      if (stepId === 'settings') {
+        delete newErrors.description;
+        delete newErrors.targetAmount;
+      }
+      return newErrors;
+    });
+  }, []);
 
   // Handle Published button click (Step 5)
   const handlePublish = useCallback(async () => {
@@ -121,7 +142,7 @@ function NewCampaignLayout() {
         endDate: formData.settings?.endDate,
         dafPartner: formData.routing?.dafPartner,
         internalTrackingId: formData.routing?.internalTrackingId,
-        "campaignStatus": "active",
+        campaignStatus: "active",
       };
 
       const makeCustomData = new FormData();
@@ -148,7 +169,7 @@ function NewCampaignLayout() {
       id: "organization",
       title: "Organization Information",
       component: React.createElement(OrganizationInformationForm, {
-        onNext: (data) => {
+        onNext: (data: OrganizationFormData) => {
           handleFormDataChange("organization", data);
           setCurrentStep(2);
         },
@@ -159,7 +180,7 @@ function NewCampaignLayout() {
       id: "contact",
       title: "Contact Person",
       component: React.createElement(ContactPersonForm, {
-        onNext: (data) => {
+        onNext: (data: ContactPersonFormData) => {
           handleFormDataChange("contact", data);
           setCurrentStep(3);
         },
@@ -171,7 +192,7 @@ function NewCampaignLayout() {
       id: "cause",
       title: "About the Cause",
       component: React.createElement(AboutTheCauseForm, {
-        onNext: (data) => {
+        onNext: (data: AboutTheCauseFormData) => {
           handleFormDataChange("cause", data);
           setCurrentStep(4);
         },
@@ -183,7 +204,7 @@ function NewCampaignLayout() {
       id: "settings",
       title: "Campaign Settings",
       component: React.createElement(CampaignSettingsForm, {
-        onNext: (data) => {
+        onNext: (data: CampaignSettingsFormData) => {
           handleFormDataChange("settings", data);
           setCurrentStep(5);
         },
@@ -195,33 +216,12 @@ function NewCampaignLayout() {
       id: "routing",
       title: "Donation Routing",
       component: React.createElement(DonationRoutingForm, {
-        onNext: handlePublish, // Changed from empty function to handlePublish
+        onNext: handlePublish,
         onBack: () => setCurrentStep(4),
         initialData: formData.routing || undefined,
       }),
     },
   ];
-
-  const handleFormDataChange = useCallback((stepId: string, data: unknown) => {
-    console.log(`Step ${stepId} data:`, data);
-
-    setFormData(prev => ({
-      ...prev,
-      [stepId]: data,
-    }));
-
-    // Clear errors for this step
-    setFormErrors(prev => {
-      const newErrors = { ...prev };
-      delete newErrors[stepId];
-      if (stepId === 'cause') delete newErrors.cause_description;
-      if (stepId === 'settings') {
-        delete newErrors.description;
-        delete newErrors.targetAmount;
-      }
-      return newErrors;
-    });
-  }, []);
 
   const handleBack = useCallback(() => {
     if (currentStep > 1) {
@@ -260,7 +260,6 @@ function NewCampaignLayout() {
               Follow the steps below to set up and launch your campaign.
             </p>
           </div>
-          {/* Removed the "Submit All Data" button as requested */}
         </div>
 
         {/* Display validation errors */}

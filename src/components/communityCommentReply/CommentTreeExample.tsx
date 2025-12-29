@@ -1,47 +1,46 @@
 "use client";
 
-import { useState } from "react";
-import {
-  ChevronDown,
-  ChevronRight,
-  MessageCircle,
-  Heart,
-  Reply,
-  Edit,
-  Trash2,
-  Loader2,
-  MoreVertical,
-  Send,
-  X,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+import DeleteConfirmationDialog from "@/components/confirmation/deleteConfirmationDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import DeleteConfirmationDialog from "@/components/confirmation/deleteConfirmationDialog";
+import { Textarea } from "@/components/ui/textarea";
+import useToast from "@/hooks/useToast";
+import { useGetAdminByAuthIdQuery } from "@/redux/Apis/authApi";
 import {
-  useUpdateCommunityMutation,
+  useDeleteCommunityCommentMutation,
   useDeleteCommunityMutation,
   useUpdateCommunityCommentMutation,
-  useDeleteCommunityCommentMutation,
-  useCreateCommunityReplyMutation,
+  useUpdateCommunityMutation,
 } from "@/redux/Apis/communityApi";
-import { useGetAdminByAuthIdQuery } from "@/redux/Apis/authApi";
 import getAuthIdFromToken from "@/utils/jwtDecode";
-import useToast from "@/hooks/useToast";
+import {
+  ChevronDown,
+  ChevronRight,
+  Edit,
+  Heart,
+  Loader2,
+  MessageCircle,
+  MoreVertical,
+  Reply,
+  Send,
+  Trash2,
+  X,
+} from "lucide-react";
+import { useState } from "react";
 
 // Define TypeScript interfaces
 interface Author {
@@ -275,9 +274,8 @@ function CommentNode({
               onClick={() => onToggleLike?.(comment.id)}
             >
               <Heart
-                className={`h-3 w-3 mr-1 ${
-                  comment.isLiked ? "fill-red-500 text-red-500" : ""
-                }`}
+                className={`h-3 w-3 mr-1 ${comment.isLiked ? "fill-red-500 text-red-500" : ""
+                  }`}
               />
               {comment.likes || 0}
             </Button>
@@ -516,7 +514,6 @@ export default function CommentTreeExample({
   onDelete,
   onEditReply,
   onDeleteReply,
-  isCreatingReply = false,
   className = "",
 }: CommentTreeProps) {
   const [updateCommunity] = useUpdateCommunityMutation();

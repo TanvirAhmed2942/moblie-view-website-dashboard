@@ -20,11 +20,9 @@ interface WeeklySummaryNotification extends NotificationChannel {
   day: string;
 }
 
-interface SystemMaintenanceNotification extends NotificationChannel { }
-
-interface MilestoneReachedNotification extends NotificationChannel { }
-
-interface CampaignExpiredNotification extends NotificationChannel { }
+type SystemMaintenanceNotification = NotificationChannel;
+type MilestoneReachedNotification = NotificationChannel;
+type CampaignExpiredNotification = NotificationChannel;
 
 interface Notifications {
   campaignExpired: CampaignExpiredNotification;
@@ -91,18 +89,10 @@ const SystemNotifications = () => {
     }));
   };
 
-
-
-
-
-
-
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-
-
-
+        {/* Add header content here if needed */}
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -117,7 +107,6 @@ const SystemNotifications = () => {
               <p className="text-sm text-gray-600 mt-1">Notify when a campaign reaches its end date.</p>
             </div>
             <div className="flex gap-6">
-
               <label className="flex items-center gap-2">
                 <Switch
                   checked={notifications.campaignExpired.inApp}
@@ -125,13 +114,11 @@ const SystemNotifications = () => {
                 />
                 <span className="text-sm text-gray-700 min-w-[60px]">In-App</span>
               </label>
-
             </div>
           </div>
 
+          {/* Add other notification sections here as needed */}
         </div>
-
-
       </div>
     </div>
   );

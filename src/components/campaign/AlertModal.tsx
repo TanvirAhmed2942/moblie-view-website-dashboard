@@ -19,15 +19,34 @@ import { Label } from "../ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Textarea } from "../ui/textarea";
 
+// Define proper TypeScript interfaces
+interface Campaign {
+  _id: string;
+  title: string;
+  targetAmount?: number;
+  overall_raised?: number;
+  total_invitees?: number;
+  campaignStatus?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
 interface AlertModalProps {
   isOpen: boolean;
   onClose: () => void;
-  campaign?: any; // Campaign data from parent
+  campaign?: Campaign;
   campaignName?: string;
-  donorCount?: number;
-  inviteesNumber?: number;
-  raisedAmount?: string;
-  startDate?: string;
+}
+
+interface ExpireTime {
+  hours: number;
+  minutes: number;
+  seconds: number;
+}
+
+interface TimeInput {
+  hours: number;
+  minutes: number;
 }
 
 function AlertModal({
@@ -35,10 +54,6 @@ function AlertModal({
   onClose,
   campaign,
   campaignName = "Project Wellspring",
-  donorCount: initialDonorCount,
-  inviteesNumber: initialInviteesNumber,
-  raisedAmount: initialRaisedAmount,
-  startDate: initialStartDate,
 }: AlertModalProps) {
   const [donorCount, setDonorCount] = useState("231");
   const [inviteesNumber, setInviteesNumber] = useState("122");
@@ -49,8 +64,8 @@ function AlertModal({
     date.setDate(date.getDate() + 30);
     return date;
   });
-  const [startTime, setStartTime] = useState({ hours: 0, minutes: 0 });
-  const [endTime, setEndTime] = useState({ hours: 0, minutes: 0 });
+  const [startTime, setStartTime] = useState<TimeInput>({ hours: 0, minutes: 0 });
+  const [endTime, setEndTime] = useState<TimeInput>({ hours: 0, minutes: 0 });
   const [setAlert, { isLoading }] = useSetAlertCampaignMutation();
 
   // Parse date string to Date object
@@ -118,7 +133,7 @@ function AlertModal({
   const [message, setMessage] = useState(
     'Your Pass It Along Chain has expiring. In Just "{hours}" Hours. You made a big difference. "{raised amount}" Raised!! "{invitees number}" Invitees "{donors number}" Donors'
   );
-  const [expireTime, setExpireTime] = useState({
+  const [expireTime, setExpireTime] = useState<ExpireTime>({
     hours: 0,
     minutes: 0,
     seconds: 0,
@@ -127,7 +142,7 @@ function AlertModal({
   // Combine date and time into a single Date object
   const combineDateAndTime = (
     date: Date | undefined,
-    time: { hours: number; minutes: number }
+    time: TimeInput
   ): Date | undefined => {
     if (!date) return undefined;
     const combined = new Date(date);
@@ -187,17 +202,6 @@ function AlertModal({
     }
 
     try {
-      // Prepare data for API
-      const alertData = {
-        alert: alertMessage,
-        message: message,
-        isSendAlert: true,
-        // You can add additional fields if needed
-        alertStartDate: combineDateAndTime(startDate, startTime),
-        alertEndDate: combineDateAndTime(endDate, endTime),
-        expireTime: expireTime
-      };
-
       // Call the mutation
       const response = await setAlert({
         id: campaign._id,
@@ -210,9 +214,12 @@ function AlertModal({
 
       toast.success(response.message || "Alert sent successfully!");
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error sending alert:', error);
-      toast.error(error?.data?.message || "Failed to send alert");
+      const errorMessage = error && typeof error === 'object' && 'data' in error
+        ? (error as { data?: { message?: string } }).data?.message
+        : "Failed to send alert";
+      toast.error(errorMessage || "Failed to send alert");
     }
   };
 
@@ -382,7 +389,7 @@ function AlertModal({
                         )}
                       </Button>
                     </PopoverTrigger>
-                    {/* <PopoverContext className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
                         selected={endDate}
@@ -390,7 +397,7 @@ function AlertModal({
                         initialFocus
                         disabled={(date) => !!(startDate && date < startDate)}
                       />
-                    </PopoverContext> */}
+                    </PopoverContent>
                   </Popover>
                 </div>
                 <div>

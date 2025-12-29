@@ -1,8 +1,19 @@
 import { Upload } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import { ChangeEvent, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useCreateContentMutation, useGetContentQuery } from "../../../features/settings/settingsApi";
 import { baseURL } from '../../../utils/BaseURL';
+
+// Define types
+interface SelectedImagesState {
+  logo: string;
+}
+
+interface UploadedFilesState {
+  logo: File | null;
+}
+
 
 const WebsiteSettings = () => {
   const { data, isLoading: isLoadingContent, refetch } = useGetContentQuery({});
@@ -12,12 +23,12 @@ const WebsiteSettings = () => {
   const [websiteName, setWebsiteName] = useState('');
 
   // State for selected images
-  const [selectedImages, setSelectedImages] = useState({
+  const [selectedImages, setSelectedImages] = useState<SelectedImagesState>({
     logo: '',
   });
 
   // State for uploaded files
-  const [uploadedFiles, setUploadedFiles] = useState({
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFilesState>({
     logo: null,
   });
 
@@ -33,28 +44,18 @@ const WebsiteSettings = () => {
 
       // Set logo from founders image
       if (contentData.logo) {
-        // Assuming your API base URL is stored somewhere, adjust accordingly
         const imageUrl = `${baseURL || ''}${contentData.logo}`;
         setSelectedImages(prev => ({
           ...prev,
           logo: imageUrl
         }));
       }
-
-      // Alternative: If you want to use the logo field instead of founders image
-      // if (contentData.logo) {
-      //   const imageUrl = `${import.meta.env.VITE_API_BASE_URL || ''}${contentData.logo}`;
-      //   setSelectedImages(prev => ({
-      //     ...prev,
-      //     logo: imageUrl
-      //   }));
-      // }
     }
   }, [data]);
 
   // Handle image upload
-  const handleImageUpload = (imageType, event) => {
-    const file = event.target.files[0];
+  const handleImageUpload = (imageType: keyof SelectedImagesState, event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
 
     if (!file) return;
 
@@ -87,7 +88,7 @@ const WebsiteSettings = () => {
   };
 
   // Handle form submission
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const data = new FormData();
@@ -142,9 +143,11 @@ const WebsiteSettings = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">Logo Image</label>
               <div className="flex items-center gap-3">
                 {selectedImages.logo ? (
-                  <img
+                  <Image
                     src={selectedImages.logo}
                     alt="Logo preview"
+                    width={1000}
+                    height={1000}
                     className="w-12 h-12 object-contain border border-gray-200 rounded"
                   />
                 ) : (

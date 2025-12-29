@@ -2,7 +2,7 @@
 import { AlertCircle, Eye, Pencil, Search, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import toast from 'react-hot-toast';
-import { useDeleteCampaignMutation, useGetCampaignQuery, useSingleGetCampaignQuery, useUpdateCampaignMutation } from '../../features/campaign/campaignApi';
+import { useDeleteCampaignMutation, useGetCampaignQuery, useSingleGetCampaignQuery } from '../../features/campaign/campaignApi';
 import DeleteConfirmationDialog from "../confirmation/deleteConfirmationDialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -22,8 +22,10 @@ import {
   TableRow,
 } from "../ui/table";
 import AlertModal from './AlertModal';
-import CampaignViewEditModal, { CampaignData } from "./CampaignViewEditModal";
+import CampaignViewEditModal from "./CampaignViewEditModal";
 
+// Interface matching API response
+// Interface matching API response
 // Interface matching API response
 interface Campaign {
   _id: string;
@@ -54,21 +56,6 @@ interface Campaign {
   createdAt?: string;
   updatedAt?: string;
 }
-
-interface Campaign {
-  id: string;
-  campaignName: string;
-  donorsCount: number;
-  inviteCount: number;
-  amount: string;
-  startDate: string;
-  status: "Active" | "Upcoming" | "Completed" | "Closed";
-  totalRaised: string;
-  target: string;
-  progress: number;
-}
-
-
 function CampaignListTable() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -77,7 +64,7 @@ function CampaignListTable() {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isViewEditModalOpen, setIsViewEditModalOpen] = useState(false);
-  const [viewEditCampaign, setViewEditCampaign] = useState<CampaignData | null>(null);
+
   const [modalMode, setModalMode] = useState<"view" | "edit">("view");
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
@@ -94,7 +81,7 @@ function CampaignListTable() {
 
   const [deleteCampaign] = useDeleteCampaignMutation();
 
-  const [updateCampaign] = useUpdateCampaignMutation();
+  // const [updateCampaign] = useUpdateCampaignMutation();
 
 
   // Convert API response to UI format
@@ -208,20 +195,14 @@ function CampaignListTable() {
 
   const handleCloseViewEditModal = () => {
     setIsViewEditModalOpen(false);
-    setViewEditCampaign(null);
   };
 
-  const handleSetAlert = (campaign: any) => {
+  const handleSetAlert = (campaign: Campaign) => {
     setSelectedCampaign2(campaign);
     setIsAlertModalOpen(true);
   };
 
-  // Handle page change
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    // Here you would make an API call with pagination parameters
-    // For now, we'll use client-side pagination
-  };
+
 
   // Pagination logic
   const itemsPerPage = meta.limit || 10;
@@ -510,7 +491,7 @@ function CampaignListTable() {
       <AlertModal
         isOpen={isAlertModalOpen}
         onClose={handleCloseAlertModal}
-        campaign={selectedCampaign2}
+        campaign={selectedCampaign2 || undefined}
       />
     </div>
   );

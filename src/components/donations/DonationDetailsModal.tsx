@@ -1,8 +1,9 @@
 "use client";
 import { Calendar, Send, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import toast from 'react-hot-toast';
 import { useSendMessageMutation } from '../../features/donations/donationsApi';
+import { RTKError } from '../../utils/type';
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import {
@@ -34,20 +35,41 @@ interface DonationDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   donation: DonationData | null;
+  isLoading?: boolean; // Add this line
 }
 
-function DonationDetailsModal({ isOpen, onClose, donation }: DonationDetailsModalProps) {
+function DonationDetailsModal({
+  isOpen,
+  onClose,
+  donation,
+  isLoading = false // Add this with default value
+}: DonationDetailsModalProps) {
   const [message, setMessage] = useState("");
-  const [sendMessage, { isLoading }] = useSendMessageMutation();
+  const [sendMessage, { isLoading: isSending }] = useSendMessageMutation();
 
   // Initialize message when donation data is available
-  useState(() => {
+  useEffect(() => {
     if (donation) {
       setMessage(
         `Hello Donor,\nThanks to your support, we've received ${donation?.donationAmount} donation!\nYour contribution is inspiring change and making a real impact. Let's keep the momentum going together!\nThank you for being part of this journey.\nBest,\nPassitAlong Team!`
       );
     }
-  });
+  }, [donation]);
+
+  if (isLoading) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="overflow-y-auto max-h-[70vh]">
+          <div className="flex items-center justify-center h-40">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Loading donation details...</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   if (!donation) return null;
 
@@ -88,9 +110,9 @@ function DonationDetailsModal({ isOpen, onClose, donation }: DonationDetailsModa
 
       toast.success(response.message || "Message sent successfully!");
       onClose();
-    } catch (error) {
-      console.error("Failed to send message:", error);
-      toast.error(error?.data?.message || "Failed to send message. Please try again.");
+    } catch (error: unknown) {
+      const err = error as RTKError;
+      toast.error(err?.data?.message || "Failed to send message. Please try again.");
     }
   };
 
@@ -240,10 +262,10 @@ function DonationDetailsModal({ isOpen, onClose, donation }: DonationDetailsModa
             <div className="flex justify-end mt-4">
               <Button
                 onClick={handleSend}
-                disabled={isLoading}
+                disabled={isSending}
                 className="bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
               >
-                {isLoading ? (
+                {isSending ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                     Sending...

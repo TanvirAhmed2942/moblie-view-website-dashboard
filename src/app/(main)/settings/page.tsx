@@ -6,8 +6,6 @@ import AboutUsContent from '../../../components/setting/contentManagement/AboutU
 import DownlineContent from '../../../components/setting/contentManagement/DownlineContent';
 import PrivacyPolicyContent from '../../../components/setting/contentManagement/PrivacyPolicyContent';
 import WebsiteSettings from '../../../components/setting/contentManagement/WebsiteSettings';
-import Schedule from '../../../components/setting/notification/Schedule';
-import SystemNotifications from '../../../components/setting/notification/SystemNotifications';
 import UpdateSendingConfiguration from '../../../components/setting/notification/UpdateSendingConfiguration';
 
 
@@ -86,10 +84,10 @@ const Settings = () => {
             <UpdateSendingConfiguration />
 
             {/* Auto-Send Schedule and Recipient Management */}
-            <Schedule />
+            {/* <Schedule /> */}
 
             {/* System Notifications */}
-            <SystemNotifications />
+            {/* <SystemNotifications /> */}
 
 
           </div>

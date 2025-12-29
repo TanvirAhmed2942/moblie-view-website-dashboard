@@ -1,6 +1,6 @@
 "use client";
 import { ArrowUp, Eye, Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useGetDonationsQuery, useGetSingleDonationsDetailsQuery } from "../../features/donations/donationsApi";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -52,29 +52,30 @@ interface Transaction {
   updatedAt: string;
 }
 
-interface ApiResponse {
-  success: boolean;
-  message: string;
-  statusCode: number;
+interface DonationsResponse {
   data: {
+    result: Transaction[];
     meta: {
+      total: number;
       page: number;
       limit: number;
-      total: number;
       totalPage: number;
     };
-    result: Transaction[];
   };
 }
 
 // Helper function to format date
 const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  });
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+  } catch {
+    return "Invalid Date";
+  }
 };
 
 // Helper function to mask phone number
@@ -87,7 +88,7 @@ const maskPhoneNumber = (phone: string) => {
 // Format payment method
 const formatPaymentMethod = (method: string) => {
   if (!method) return "Unknown";
-  return method.charAt(0).toUpperCase() + method.slice(1);
+  return method.charAt(0).toUpperCase() + method.slice(1).toLowerCase();
 };
 
 function DonationTable() {
@@ -96,38 +97,48 @@ function DonationTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDonationId, setSelectedDonationId] = useState<string | null>(null);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setCurrentPage(1); // Reset to first page on search
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Fetch donations with pagination
-  const { data: donationsData, isLoading, isError, refetch } = useGetDonationsQuery(currentPage);
+  const {
+    data: donationsData,
+    isLoading,
+    isError,
+    refetch
+  } = useGetDonationsQuery(currentPage);
 
   // Fetch single donation details when selected
-  const { data: singleDonationData, isLoading: isLoadingDetails } = useGetSingleDonationsDetailsQuery(
+  const {
+    data: singleDonationData,
+    isLoading: isLoadingDetails
+  } = useGetSingleDonationsDetailsQuery(
     selectedDonationId!,
     { skip: !selectedDonationId }
   );
 
-  useEffect(() => {
-    refetch();
-  }, [currentPage, refetch]);
-
-  const handleViewDetails = (donationId: string) => {
+  // Handle view details
+  const handleViewDetails = useCallback((donationId: string) => {
     setSelectedDonationId(donationId);
-  };
+    setIsModalOpen(true);
+  }, []);
 
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     setIsModalOpen(false);
     setSelectedDonationId(null);
-  };
-
-  // Open modal when single donation data is loaded
-  useEffect(() => {
-    if (singleDonationData?.data && selectedDonationId) {
-      setIsModalOpen(true);
-    }
-  }, [singleDonationData, selectedDonationId]);
+  }, []);
 
   // Convert API response to DonationData for modal
-  const getDonationDataForModal = (): DonationData | null => {
+  const getDonationDataForModal = useCallback((): DonationData | null => {
     if (!singleDonationData?.data) return null;
 
     const transaction = singleDonationData.data as Transaction;
@@ -136,7 +147,7 @@ function DonationTable() {
       campaignId: transaction.campaignId._id,
       campaignName: transaction.campaignTitle || transaction.campaignId.title,
       donorPhoneNumber: transaction.donorPhone,
-      donationAmount: `$${transaction.amountPaid}`,
+      donationAmount: `$${transaction.amountPaid.toFixed(2)}`,
       date: formatDate(transaction.createdAt),
       paymentStatus: transaction.paymentStatus === 'completed' ? 'Successful' :
         transaction.paymentStatus === 'pending' ? 'Pending' : 'Failed',
@@ -147,41 +158,42 @@ function DonationTable() {
       updatedAt: transaction.updatedAt,
       amount: transaction.amountPaid
     };
-  };
+  }, [singleDonationData]);
 
-  // Get filtered donations
-  const getFilteredDonations = () => {
+  // Get filtered donations with memoization
+  const filteredDonations = useMemo(() => {
     if (!donationsData?.data?.result) return [];
 
     const transactions = donationsData.data.result;
 
-    return transactions.filter((donation) => {
+    return transactions.filter((donation: Transaction) => {
+      // Search filter
       const matchesSearch =
-        donation.campaignId?._id?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
-        donation.campaignTitle?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
-        donation.donorPhone?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
-        donation.transactionId?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
-        donation._id?.toLowerCase()?.includes(searchQuery.toLowerCase());
+        debouncedSearchQuery === "" ||
+        donation.campaignId?._id?.toLowerCase()?.includes(debouncedSearchQuery.toLowerCase()) ||
+        donation.campaignTitle?.toLowerCase()?.includes(debouncedSearchQuery.toLowerCase()) ||
+        donation.donorPhone?.toLowerCase()?.includes(debouncedSearchQuery.toLowerCase()) ||
+        donation.transactionId?.toLowerCase()?.includes(debouncedSearchQuery.toLowerCase()) ||
+        donation._id?.toLowerCase()?.includes(debouncedSearchQuery.toLowerCase());
 
+      // Status filter
       const matchesStatus =
         statusFilter === "all" ||
         donation.paymentStatus.toLowerCase() === statusFilter.toLowerCase();
 
       return matchesSearch && matchesStatus;
     });
-  };
+  }, [donationsData, debouncedSearchQuery, statusFilter]);
 
-  const filteredDonations = getFilteredDonations();
   const meta = donationsData?.data?.meta || { total: 0, page: 1, limit: 10, totalPage: 1 };
 
-  // Calculate pagination values
-  const totalFiltered = filteredDonations.length;
-  const showingStart = totalFiltered > 0 ? ((currentPage - 1) * meta.limit) + 1 : 0;
+  // Calculate pagination values correctly
+  const showingStart = meta.total > 0 ? ((currentPage - 1) * meta.limit) + 1 : 0;
   const showingEnd = Math.min(currentPage * meta.limit, meta.total);
-  const totalPages = meta.totalPage;
+  const totalPages = Math.max(1, meta.totalPage);
 
-  const getStatusBadge = (status: string) => {
-    const statusText = status.charAt(0).toUpperCase() + status.slice(1);
+  const getStatusBadge = useCallback((status: string) => {
+    const statusText = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
 
     switch (status.toLowerCase()) {
       case "pending":
@@ -209,7 +221,7 @@ function DonationTable() {
           </Badge>
         );
     }
-  };
+  }, []);
 
   const handleExport = () => {
     console.log("Exporting donations...");
@@ -217,12 +229,12 @@ function DonationTable() {
   };
 
   // Generate page buttons
-  const renderPageButtons = () => {
-    const buttons = [];
+  const renderPageButtons = useCallback(() => {
+    const buttons: React.ReactNode[] = [];
 
-    if (totalPages === 0) return buttons;
+    if (totalPages <= 1) return buttons;
 
-    // Always show first page
+    // Show first page
     buttons.push(
       <Button
         key={1}
@@ -237,14 +249,26 @@ function DonationTable() {
       </Button>
     );
 
-    // Show pages around current page
-    const startPage = Math.max(2, currentPage - 1);
-    const endPage = Math.min(totalPages - 1, currentPage + 1);
+    // Calculate range of pages to show
+    let startPage = Math.max(2, currentPage - 1);
+    let endPage = Math.min(totalPages - 1, currentPage + 1);
 
+    // Adjust if near start
+    if (currentPage <= 3) {
+      endPage = Math.min(4, totalPages - 1);
+    }
+
+    // Adjust if near end
+    if (currentPage >= totalPages - 2) {
+      startPage = Math.max(2, totalPages - 3);
+    }
+
+    // Add ellipsis after first page if needed
     if (startPage > 2) {
       buttons.push(<span key="ellipsis1" className="px-2 text-gray-700">...</span>);
     }
 
+    // Add middle pages
     for (let i = startPage; i <= endPage; i++) {
       if (i !== 1 && i !== totalPages) {
         buttons.push(
@@ -263,31 +287,31 @@ function DonationTable() {
       }
     }
 
+    // Add ellipsis before last page if needed
     if (endPage < totalPages - 1) {
       buttons.push(<span key="ellipsis2" className="px-2 text-gray-700">...</span>);
     }
 
-    // Always show last page if there is more than 1 page
-    if (totalPages > 1) {
-      buttons.push(
-        <Button
-          key={totalPages}
-          variant={currentPage === totalPages ? "default" : "ghost"}
-          className={`px-4 py-2 rounded-lg ${currentPage === totalPages
-            ? "bg-purple-600 hover:bg-purple-700 text-white"
-            : "text-gray-700 hover:bg-gray-100 bg-white border border-gray-300"
-            }`}
-          onClick={() => setCurrentPage(totalPages)}
-        >
-          {totalPages}
-        </Button>
-      );
-    }
+    // Show last page
+    buttons.push(
+      <Button
+        key={totalPages}
+        variant={currentPage === totalPages ? "default" : "ghost"}
+        className={`px-4 py-2 rounded-lg ${currentPage === totalPages
+          ? "bg-purple-600 hover:bg-purple-700 text-white"
+          : "text-gray-700 hover:bg-gray-100 bg-white border border-gray-300"
+          }`}
+        onClick={() => setCurrentPage(totalPages)}
+      >
+        {totalPages}
+      </Button>
+    );
 
     return buttons;
-  };
+  }, [currentPage, totalPages]);
 
-  if (isLoading) {
+  // Loading state
+  if (isLoading && currentPage === 1) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -298,6 +322,7 @@ function DonationTable() {
     );
   }
 
+  // Error state
   if (isError) {
     return (
       <div className="text-center py-8">
@@ -312,20 +337,20 @@ function DonationTable() {
   return (
     <div className="space-y-4">
       {/* Header Section */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-gray-900">Donations List</h1>
-        <div className="flex items-center gap-3">
-          <div className="relative">
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-3 w-full md:w-auto">
+          <div className="relative w-full md:w-64">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
               placeholder="Search by ID, phone, or transaction..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 w-64 border-gray-300"
+              className="pl-10 w-full border-gray-300"
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40 border-gray-300">
+            <SelectTrigger className="w-full md:w-40 border-gray-300">
               <SelectValue placeholder="Status: All" />
             </SelectTrigger>
             <SelectContent>
@@ -337,7 +362,7 @@ function DonationTable() {
           </Select>
           <Button
             onClick={handleExport}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2"
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 w-full md:w-auto"
           >
             <ArrowUp className="h-4 w-4 mr-2 rotate-45" />
             Export
@@ -346,7 +371,7 @@ function DonationTable() {
       </div>
 
       {/* Table Section */}
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border rounded-lg overflow-hidden overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-purple-50 hover:bg-purple-50">
@@ -384,7 +409,7 @@ function DonationTable() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredDonations.map((donation) => (
+              filteredDonations.map((donation: Transaction) => (
                 <TableRow
                   key={donation._id}
                   className="bg-white hover:bg-gray-50"
@@ -394,7 +419,7 @@ function DonationTable() {
                   </TableCell>
                   <TableCell>{donation.campaignId._id.slice(-6)}</TableCell>
                   <TableCell>{maskPhoneNumber(donation.donorPhone)}</TableCell>
-                  <TableCell>${donation.amountPaid}</TableCell>
+                  <TableCell>${donation.amountPaid.toFixed(2)}</TableCell>
                   <TableCell>{formatDate(donation.createdAt)}</TableCell>
                   <TableCell className="capitalize">
                     {formatPaymentMethod(donation.paymentMethod)}
@@ -407,7 +432,7 @@ function DonationTable() {
                         size="sm"
                         className="h-8 w-8 p-0 bg-purple-600 hover:bg-purple-700 rounded-full"
                         onClick={() => handleViewDetails(donation._id)}
-                        disabled={isLoadingDetails}
+                        disabled={isLoadingDetails && selectedDonationId === donation._id}
                       >
                         {isLoadingDetails && selectedDonationId === donation._id ? (
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -426,15 +451,15 @@ function DonationTable() {
 
       {/* Pagination Section */}
       {meta.total > 0 && (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-sm text-gray-600">
             Showing {showingStart} to {showingEnd} of {meta.total} donations
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-center">
             <Button
               variant="outline"
               disabled={currentPage === 1}
-              onClick={() => setCurrentPage(prev => prev - 1)}
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               className="px-4 py-2 border-gray-300 text-gray-700 disabled:opacity-50 rounded-lg"
             >
               &lt; Previous
@@ -445,7 +470,7 @@ function DonationTable() {
             <Button
               variant="default"
               disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage(prev => prev + 1)}
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 rounded-lg"
             >
               Next &gt;
@@ -458,6 +483,7 @@ function DonationTable() {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         donation={getDonationDataForModal()}
+        isLoading={isLoadingDetails}
       />
     </div>
   );

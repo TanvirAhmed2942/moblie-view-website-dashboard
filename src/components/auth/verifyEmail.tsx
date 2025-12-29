@@ -12,6 +12,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import toast from 'react-hot-toast';
 import { useResendOTPMutation, useVerifyOTPMutation } from '../../features/auth/authApi';
+import { RTKError } from '../../utils/type';
 export default function VerifyEmail() {
   const [otp, setOtp] = useState("");
   const router = useRouter();
@@ -28,10 +29,11 @@ export default function VerifyEmail() {
       // On success, navigate to reset password page
       toast.success(response.message || "OTP verified successfully!");
       router.push(`/auth/reset-password?token=${response.data.verifyToken}`);
-    } catch (error) {
-      console.error("OTP verification failed:", error);
-      toast.error(error.data.message || "OTP verification failed. Please try again.");
+    } catch (error: unknown) {
+      const err = error as RTKError;
+      toast.error(err?.data?.message || "OTP verification failed. Please try again.");
     }
+
   };
 
   const handleResendOtp = async () => {
@@ -39,10 +41,11 @@ export default function VerifyEmail() {
       const response = await resendOTP({ email: email }).unwrap();
       console.log(response);
       toast.success(response.message || "OTP resent successfully!");
-    } catch (error) {
-      console.error("Resend OTP failed:", error);
-      toast.error(error.data.message || "Resend OTP failed. Please try again.");
+    } catch (error: unknown) {
+      const err = error as RTKError;
+      toast.error(err?.data?.message || "Resend OTP failed. Please try again.");
     }
+
   };
 
   return (
