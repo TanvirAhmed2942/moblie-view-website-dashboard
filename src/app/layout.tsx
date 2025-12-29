@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import { Toaster } from "react-hot-toast";
+import ProtectedRoute from '../components/ProtectedRoute';
 import ClientLayout from './ClientLayout';
 import "./globals.css";
 
@@ -34,10 +35,12 @@ export default function RootLayout({
         className={`${geistSans.variable} antialiased h-screen`}
       >
         {/* <AuthGuard> */}
-        <ClientLayout>
-          {children}
-          <Toaster />
-        </ClientLayout>
+        <ProtectedRoute>
+          <ClientLayout>
+            {children}
+            <Toaster />
+          </ClientLayout>
+        </ProtectedRoute>
         {/* </AuthGuard> */}
       </body>
     </html>

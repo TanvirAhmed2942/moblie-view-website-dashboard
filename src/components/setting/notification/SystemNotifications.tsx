@@ -1,103 +1,119 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
+import { useCreateContentMutation, useGetContentQuery } from '../../../features/settings/settingsApi';
+import { RTKError } from '../../../utils/type';
 import { Switch } from '../../ui/switch';
 
-interface NotificationChannel {
-  email: boolean;
-  inApp: boolean;
-  slack: boolean;
-}
-
-interface LowProgressNotification extends NotificationChannel {
-  threshold: number;
-  daysBeforeEnd: number;
-}
-
-interface NewDonorNotification extends NotificationChannel {
-  minAmount: number;
-}
-
-interface WeeklySummaryNotification extends NotificationChannel {
-  day: string;
-}
-
-type SystemMaintenanceNotification = NotificationChannel;
-type MilestoneReachedNotification = NotificationChannel;
-type CampaignExpiredNotification = NotificationChannel;
-
-interface Notifications {
-  campaignExpired: CampaignExpiredNotification;
-  lowProgress: LowProgressNotification;
-  newDonor: NewDonorNotification;
-  milestoneReached: MilestoneReachedNotification;
-  weeklySummary: WeeklySummaryNotification;
-  systemMaintenance: SystemMaintenanceNotification;
-}
-
-type NotificationCategory = keyof Notifications;
-
 const SystemNotifications = () => {
-  // State for notifications
-  const [notifications, setNotifications] = useState<Notifications>({
-    campaignExpired: {
-      email: true,
-      inApp: true,
-      slack: false
-    },
-    lowProgress: {
-      email: true,
-      inApp: true,
-      slack: false,
-      threshold: 25,
-      daysBeforeEnd: 7
-    },
-    newDonor: {
-      email: true,
-      inApp: true,
-      slack: false,
-      minAmount: 50
-    },
-    milestoneReached: {
-      email: true,
-      inApp: true,
-      slack: false
-    },
-    weeklySummary: {
-      email: true,
-      inApp: false,
-      slack: true,
-      day: 'Monday'
-    },
-    systemMaintenance: {
-      email: true,
-      inApp: true,
-      slack: true
-    }
+  const { data, isLoading: isLoadingContent } = useGetContentQuery({});
+  const [createWebsite] = useCreateContentMutation();
+
+  // State for notification toggles
+  const [notificationToggles, setNotificationToggles] = useState({
+    campaignExpiredAlert: true,
+    lowProgressWarning: false,
   });
 
-  // Handle notification toggle
-  const handleNotificationToggle = (
-    category: NotificationCategory,
-    channel: 'email' | 'inApp' | 'slack',
-    checked: boolean
-  ) => {
-    setNotifications(prev => ({
+  // Individual loading states
+  const [loadingStates, setLoadingStates] = useState({
+    campaignExpiredAlert: false,
+    lowProgressWarning: false,
+  });
+
+  // Load data from API when component mounts or data changes
+  useEffect(() => {
+    if (data?.data?.notificationStrategy) {
+      const notificationStrategy = data.data.notificationStrategy;
+      setNotificationToggles({
+        campaignExpiredAlert: notificationStrategy.campaignExpiredAlert,
+        lowProgressWarning: notificationStrategy.lowProgressWarning,
+      });
+    }
+  }, [data]);
+
+  // Handle toggle change with API call
+  const handleToggleChange = async (key: keyof typeof notificationToggles, checked: boolean) => {
+    // Set individual loading state
+    setLoadingStates(prev => ({
       ...prev,
-      [category]: {
-        ...prev[category],
-        [channel]: checked
-      }
+      [key]: true
     }));
+
+    // First update local state
+    const updatedToggles = {
+      ...notificationToggles,
+      [key]: checked
+    };
+
+    setNotificationToggles(updatedToggles);
+
+    // Prepare data for API - Only send the notification strategy part
+    const dataToSave = {
+      notificationStrategy: {
+        // Keep existing notificationStrategy data if available
+        ...(data?.data?.notificationStrategy || {}),
+        // Update only the fields we're changing
+        campaignExpiredAlert: updatedToggles.campaignExpiredAlert,
+        lowProgressWarning: updatedToggles.lowProgressWarning,
+      }
+    };
+
+    const formData = new FormData();
+    formData.append('data', JSON.stringify(dataToSave));
+
+    try {
+      const response = await createWebsite(formData).unwrap();
+      toast.success(response.message || 'Notification settings updated');
+    } catch (error: unknown) {
+      // Revert on error
+      setNotificationToggles(prev => ({
+        ...prev,
+        [key]: !checked
+      }));
+
+      const err = error as RTKError;
+      toast.error(err?.data?.message || 'Error saving notification settings');
+    } finally {
+      // Clear individual loading state
+      setLoadingStates(prev => ({
+        ...prev,
+        [key]: false
+      }));
+    }
   };
+
+  // Show loading state while fetching data
+  if (isLoadingContent) {
+    return (
+      <div>
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-6">System Notifications</h3>
+          <div className="animate-pulse space-y-6">
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+              </div>
+              <div className="h-6 w-12 bg-gray-200 rounded"></div>
+            </div>
+            <div className="bg-gray-200 h-[1px]"></div>
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+              </div>
+              <div className="h-6 w-12 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
-        {/* Add header content here if needed */}
-      </div>
-
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-2">System Notifications</h3>
-        <p className="text-sm text-gray-600 mb-6">Configure internal and external notifications for important system events.</p>
+        <h3 className="text-lg font-medium text-gray-900 mb-6">System Notifications</h3>
 
         <div className="space-y-6">
           {/* Campaign Expired Alert */}
@@ -106,18 +122,31 @@ const SystemNotifications = () => {
               <h4 className="font-medium text-gray-900">Campaign Expired Alert</h4>
               <p className="text-sm text-gray-600 mt-1">Notify when a campaign reaches its end date.</p>
             </div>
-            <div className="flex gap-6">
-              <label className="flex items-center gap-2">
-                <Switch
-                  checked={notifications.campaignExpired.inApp}
-                  onCheckedChange={(checked) => handleNotificationToggle('campaignExpired', 'inApp', checked)}
-                />
-                <span className="text-sm text-gray-700 min-w-[60px]">In-App</span>
-              </label>
+            <div>
+              <Switch
+                checked={notificationToggles.campaignExpiredAlert}
+                onCheckedChange={(checked) => handleToggleChange('campaignExpiredAlert', checked)}
+                disabled={loadingStates.campaignExpiredAlert}
+              />
             </div>
           </div>
 
-          {/* Add other notification sections here as needed */}
+          <div className='bg-gray-200 h-[1px]'></div>
+
+          {/* Low Progress Warning */}
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <h4 className="font-medium text-gray-900">Low Progress Warning</h4>
+              <p className="text-sm text-gray-600 mt-1">Alert when campaign is below 25% with 1 week left.</p>
+            </div>
+            <div>
+              <Switch
+                checked={notificationToggles.lowProgressWarning}
+                onCheckedChange={(checked) => handleToggleChange('lowProgressWarning', checked)}
+                disabled={loadingStates.lowProgressWarning}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>

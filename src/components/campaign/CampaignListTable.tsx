@@ -1,8 +1,10 @@
 "use client";
 import { AlertCircle, Eye, Pencil, Search, Trash2 } from "lucide-react";
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from "react";
 import toast from 'react-hot-toast';
 import { useDeleteCampaignMutation, useGetCampaignQuery, useSingleGetCampaignQuery } from '../../features/campaign/campaignApi';
+import { CustomLoading } from '../../hooks/CustomLoading';
 import DeleteConfirmationDialog from "../confirmation/deleteConfirmationDialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -180,6 +182,11 @@ function CampaignListTable() {
     setIsViewEditModalOpen(true);
   };
 
+  const router = useRouter();
+  const handleAddCampaign = () => {
+    router.push("/campaigns/new-campaign");
+  };
+
 
   const handleCloseAlertModal = () => {
     setIsAlertModalOpen(false);
@@ -216,17 +223,17 @@ function CampaignListTable() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading campaigns...</p>
-        </div>
+      <div className="flex items-center justify-center h-[500px]">
+        <CustomLoading />
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 bg-white p-3 rounded">
+      <div className='flex justify-end pb-2'>
+        <button className='bg-purple-600 text-white px-4 cursor-pointer py-1.5 text-sm rounded-sm shadow' onClick={handleAddCampaign}>Add Campaign</button>
+      </div>
       {/* Header Section */}
       <div className="flex items-center justify-between">
         <div>
@@ -485,7 +492,7 @@ function CampaignListTable() {
         onSuccess={() => {
           // Refetch campaigns after successful update
           refetch();
-          toast.success("Campaign updated successfully!");
+
         }}
       />
       <AlertModal

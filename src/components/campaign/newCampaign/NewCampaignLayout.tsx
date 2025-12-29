@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from 'next/navigation';
 import React, { useCallback, useState } from "react";
 import { useCreateCampaignMutation } from "../../../features/campaign/campaignApi";
 import MultiForm from "./MultiForm";
@@ -58,8 +59,10 @@ function NewCampaignLayout() {
     routing: null,
   });
 
+  const router = useRouter();
+
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [createCampaign] = useCreateCampaignMutation();
+  const [createCampaign, { isLoading }] = useCreateCampaignMutation();
 
   const handleFormDataChange = useCallback((stepId: string, data: unknown) => {
     console.log(`Step ${stepId} data:`, data);
@@ -217,6 +220,7 @@ function NewCampaignLayout() {
       title: "Donation Routing",
       component: React.createElement(DonationRoutingForm, {
         onNext: handlePublish,
+        loading:isLoading,
         onBack: () => setCurrentStep(4),
         initialData: formData.routing || undefined,
       }),
@@ -251,8 +255,9 @@ function NewCampaignLayout() {
   }, [formData]);
 
   return (
-    <div className="min-h-screen">
+    <div className=" p-3 bg-white rounded">
       <div className="mx-auto">
+        <div onClick={() => router.push("/campaigns")} className='bg-purple-500 px-4 py-1.5 w-20 text-center text-white shadow rounded mb-1 cursor-pointer'>Back</div>
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">New Campaign</h1>

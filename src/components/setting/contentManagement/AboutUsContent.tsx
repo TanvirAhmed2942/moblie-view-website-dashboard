@@ -49,7 +49,7 @@ const AboutUsContent = () => {
   });
 
   const { data, refetch } = useGetContentQuery({});
-  const [createWebsite] = useCreateContentMutation();
+  const [createWebsite, { isLoading: isLoadingCreate }] = useCreateContentMutation();
 
   // Load default values from API
   useEffect(() => {
@@ -151,6 +151,8 @@ const AboutUsContent = () => {
       alert('Error saving content');
     }
   };
+
+
 
   return (
     <div>
@@ -267,11 +269,12 @@ const AboutUsContent = () => {
         <div className="mt-8 flex justify-end gap-4 border-t border-gray-100 pt-6">
           <button
             type="button"
+
             onClick={handleSubmit}
             disabled={!content.introduction.trim()}
             className="px-6 py-2 bg-purple-600 cursor-pointer text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm font-medium"
           >
-            Save Changes
+            {isLoadingCreate ? 'Saving...' : 'Save'}
           </button>
         </div>
       </div>

@@ -8,6 +8,7 @@ export const overviewApi = baseApi.injectEndpoints({
         url: searchTerm ? `/campaign?searchTerm=${searchTerm}` : '/campaign',
         method: 'GET',
       }),
+      providesTags: ['campaigns'],
     }),
 
     singleGetCampaign: builder.query({
@@ -15,6 +16,7 @@ export const overviewApi = baseApi.injectEndpoints({
         url: `/campaign/${id}`,
         method: 'GET',
       }),
+      providesTags: ['campaigns'],
     }),
 
     createCampaign: builder.mutation({
@@ -23,6 +25,7 @@ export const overviewApi = baseApi.injectEndpoints({
         method: 'POST',
         body: data
       }),
+      invalidatesTags: ['campaigns'],
     }),
 
 
@@ -32,6 +35,7 @@ export const overviewApi = baseApi.injectEndpoints({
         method: 'PATCH',
         body: data
       }),
+      invalidatesTags: ['campaigns'],
     }),
 
 
@@ -40,6 +44,7 @@ export const overviewApi = baseApi.injectEndpoints({
         url: `/campaign/${id}`,
         method: 'DELETE',
       }),
+      invalidatesTags: ['campaigns'],
     }),
 
     setAlertCampaign: builder.mutation({
@@ -48,8 +53,11 @@ export const overviewApi = baseApi.injectEndpoints({
         method: 'PATCH',
         body: data
       }),
+      invalidatesTags: ['campaigns'],
     }),
+    
   }),
+
 });
 
 // Export hooks

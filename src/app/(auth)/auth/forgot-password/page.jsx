@@ -1,8 +1,12 @@
 import ForgotPassword from "@/components/auth/forgotPassword";
-import React from "react";
+import { Suspense } from "react";
 
 function page() {
-  return <ForgotPassword />;
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ForgotPassword />
+    </Suspense>
+  );
 }
 
 export default page;

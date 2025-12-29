@@ -9,6 +9,7 @@ interface DonationRoutingFormProps {
   onNext: (data: DonationRoutingFormData) => void;
   onBack: () => void;
   initialData?: DonationRoutingFormData;
+  loading?: boolean; // Add loading prop
 }
 
 export interface DonationRoutingFormData {
@@ -20,6 +21,7 @@ function DonationRoutingForm({
   onNext,
   onBack,
   initialData,
+  loading = false, // Default to false
 }: DonationRoutingFormProps) {
   const [formData, setFormData] = useState<DonationRoutingFormData>({
     dafPartner: initialData?.dafPartner || "",
@@ -87,6 +89,7 @@ function DonationRoutingForm({
             placeholder="Enter your DAF Partner name here..."
             className={`bg-gray-50 border-gray-200 ${errors.dafPartner ? 'border-red-500' : ''}`}
             required
+            disabled={loading} // Disable input when loading
           />
           {errors.dafPartner && (
             <p className="text-red-500 text-sm mt-1">{errors.dafPartner}</p>
@@ -106,6 +109,7 @@ function DonationRoutingForm({
             placeholder="Enter your internal tracking ID here..."
             className={`bg-gray-50 border-gray-200 ${errors.internalTrackingId ? 'border-red-500' : ''}`}
             required
+            disabled={loading} // Disable input when loading
           />
           {errors.internalTrackingId && (
             <p className="text-red-500 text-sm mt-1">{errors.internalTrackingId}</p>
@@ -119,14 +123,23 @@ function DonationRoutingForm({
             variant="outline"
             onClick={onBack}
             className="border-purple-300 text-purple-700 hover:bg-purple-50 px-8"
+            disabled={loading} // Disable back button when loading
           >
             Back
           </Button>
           <Button
             type="submit"
             className="bg-green-600 hover:bg-green-700 text-white px-8"
+            disabled={loading} // Disable button when loading
           >
-            Publish Campaign
+            {loading ? (
+              <>
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite] mr-2"></span>
+                Publishing Campaign...
+              </>
+            ) : (
+              "Publish Campaign"
+            )}
           </Button>
         </div>
       </form>

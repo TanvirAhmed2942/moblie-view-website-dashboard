@@ -117,7 +117,6 @@ const PrivacyPolicyContent = () => {
       });
       // Refetch the updated list
       refetch();
-
       toast.success(response.message || 'Section added successfully!');
     } catch (error) {
       console.error('Error creating privacy policy:', error);

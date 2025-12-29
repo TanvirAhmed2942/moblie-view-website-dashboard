@@ -6,13 +6,13 @@ import AboutUsContent from '../../../components/setting/contentManagement/AboutU
 import DownlineContent from '../../../components/setting/contentManagement/DownlineContent';
 import PrivacyPolicyContent from '../../../components/setting/contentManagement/PrivacyPolicyContent';
 import WebsiteSettings from '../../../components/setting/contentManagement/WebsiteSettings';
+import Schedule from '../../../components/setting/notification/Schedule';
+import SystemNotifications from '../../../components/setting/notification/SystemNotifications';
 import UpdateSendingConfiguration from '../../../components/setting/notification/UpdateSendingConfiguration';
 
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('content');
-
-
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -23,9 +23,6 @@ const Settings = () => {
             <h1 className="text-3xl font-semibold text-gray-900">Settings</h1>
             <p className="text-gray-600 mt-1">Manage and configure the system, content and campaigns</p>
           </div>
-          <button className="px-6 py-2 bg-purple-100 cursor-pointer text-purple-700 rounded-lg font-medium hover:bg-purple-200 transition-colors">
-            Save all changes
-          </button>
         </div>
 
         {/* Tabs */}
@@ -84,12 +81,10 @@ const Settings = () => {
             <UpdateSendingConfiguration />
 
             {/* Auto-Send Schedule and Recipient Management */}
-            {/* <Schedule /> */}
+            <Schedule />
 
             {/* System Notifications */}
-            {/* <SystemNotifications /> */}
-
-
+            <SystemNotifications />
           </div>
         )}
       </div>

@@ -2,6 +2,7 @@
 import { Eye, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useGetDonorDetailsQuery, useGetDonorQuery } from "../../features/donor/donorApi";
+import { CustomLoading } from '../../hooks/CustomLoading';
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -20,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "../ui/table";
-import SeeDonorProfileModal, { DonorProfileData } from "./SeeDonorProfileModal";
+import SeeDonorProfileModal, { DonorProfileData, Invitation, Transaction } from "./SeeDonorProfileModal";
 
 // API Response Types
 interface ApiUser {
@@ -39,6 +40,41 @@ interface ApiUser {
   totalInvited: number;
   createdAt: string;
   updatedAt: string;
+}
+
+
+interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPage: number;
+}
+
+
+
+interface DonorApiResponse {
+  data?: {
+    result?: ApiUser[];
+    meta?: PaginationMeta;
+  };
+}
+
+interface TransactionResponse {
+  result: Transaction[];
+  meta: PaginationMeta;
+}
+
+interface InvitationHistoryResponse {
+  userInvita: Invitation[];
+  meta: PaginationMeta;
+}
+
+interface DonorDetailsApiResponse {
+  data?: {
+    user: ApiUser;
+    transactions?: TransactionResponse;
+    invitationHistorys?: InvitationHistoryResponse;
+  };
 }
 
 // Helper function to format date
@@ -74,7 +110,6 @@ function SeedDonorListTable() {
   const {
     data: singleDonorData,
     isLoading: isLoadingDetails,
-    refetch: refetchDonorDetails
   } = useGetDonorDetailsQuery(
     {
       id: selectedDonorId,
@@ -85,6 +120,10 @@ function SeedDonorListTable() {
       skip: !selectedDonorId
     }
   );
+
+  // Type assertion for the query result
+  const donorDetails = singleDonorData as DonorDetailsApiResponse | undefined;
+  const donors = donorsData as DonorApiResponse | undefined;
 
   useEffect(() => {
     refetch();
@@ -107,10 +146,10 @@ function SeedDonorListTable() {
 
   // Open modal when donor details are loaded
   useEffect(() => {
-    if (singleDonorData?.data && selectedDonorId) {
+    if (donorDetails?.data?.user && selectedDonorId) {
       setIsModalOpen(true);
     }
-  }, [singleDonorData, selectedDonorId]);
+  }, [donorDetails, selectedDonorId]);
 
   // Handle pagination changes from modal
   const handleDonationPageChange = (newPage: number) => {
@@ -123,16 +162,16 @@ function SeedDonorListTable() {
 
   // Convert API response to DonorProfileData for modal
   const getDonorProfileData = (): DonorProfileData | null => {
-    if (!singleDonorData?.data?.user) return null;
+    if (!donorDetails?.data?.user) return null;
 
-    const user = singleDonorData.data.user;
-    const transactions = singleDonorData.data.transactions?.result || [];
+    const user = donorDetails.data.user;
+    const transactions = donorDetails.data.transactions?.result || [];
 
     // Get latest donation date from transactions
     const latestDonation = transactions.length > 0
-      ? transactions.reduce((latest, current) =>
-        new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest
-      )
+      ? transactions.reduce((latest: Transaction, current: Transaction) => {
+        return new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest;
+      })
       : null;
 
     return {
@@ -155,12 +194,12 @@ function SeedDonorListTable() {
   };
 
   // Get filtered donors
-  const getFilteredDonors = () => {
-    if (!donorsData?.data?.result) return [];
+  const getFilteredDonors = (): ApiUser[] => {
+    if (!donors?.data?.result) return [];
 
-    const donors = donorsData.data.result;
+    const donorList = donors.data.result;
 
-    return donors.filter((donor) => {
+    return donorList.filter((donor: ApiUser) => {
       const matchesSearch =
         donor.name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
         donor.contact?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
@@ -176,7 +215,7 @@ function SeedDonorListTable() {
   };
 
   const filteredDonors = getFilteredDonors();
-  const meta = donorsData?.data?.meta || { total: 0, page: 1, limit: 10, totalPage: 1 };
+  const meta = donors?.data?.meta || { total: 0, page: 1, limit: 10, totalPage: 1 };
 
   // Calculate pagination values
   const showingEnd = Math.min(currentPage * meta.limit, meta.total);
@@ -186,9 +225,7 @@ function SeedDonorListTable() {
 
   // Generate page buttons
   const renderPageButtons = () => {
-    const buttons = [];
-
-    if (totalPages === 0) return buttons;
+    const buttons: React.ReactNode[] = [];
 
     // Always show first page
     buttons.push(
@@ -257,11 +294,8 @@ function SeedDonorListTable() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading donors...</p>
-        </div>
+      <div className="h-[500px] flex items-center justify-center">
+        <CustomLoading />
       </div>
     );
   }
@@ -278,7 +312,7 @@ function SeedDonorListTable() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-3 bg-white/80 rounded">
       {/* Header Section */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Donor List</h1>
@@ -340,13 +374,13 @@ function SeedDonorListTable() {
             {filteredDonors.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                  {donorsData?.data?.result?.length === 0
+                  {donors?.data?.result?.length === 0
                     ? "No donors found"
                     : "No donors found matching your criteria"}
                 </TableCell>
               </TableRow>
             ) : (
-              filteredDonors.map((donor) => (
+              filteredDonors.map((donor: ApiUser) => (
                 <TableRow key={donor._id} className="bg-white hover:bg-gray-50">
                   <TableCell className="font-medium">{`Id${donor._id.slice(-4)}`}</TableCell>
                   <TableCell className="font-medium">{donor.contact}</TableCell>
@@ -422,10 +456,10 @@ function SeedDonorListTable() {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         donor={getDonorProfileData()}
-        invitations={singleDonorData?.data?.invitationHistorys?.userInvita || []}
-        transactions={singleDonorData?.data?.transactions?.result || []}
-        invitationMeta={singleDonorData?.data?.invitationHistorys?.meta}
-        transactionMeta={singleDonorData?.data?.transactions?.meta}
+        invitations={donorDetails?.data?.invitationHistorys?.userInvita || []}
+        transactions={donorDetails?.data?.transactions?.result || []}
+        invitationMeta={donorDetails?.data?.invitationHistorys?.meta}
+        transactionMeta={donorDetails?.data?.transactions?.meta}
         onDonationPageChange={handleDonationPageChange}
         onInviteePageChange={handleInviteePageChange}
         currentDonationPage={donationPage}

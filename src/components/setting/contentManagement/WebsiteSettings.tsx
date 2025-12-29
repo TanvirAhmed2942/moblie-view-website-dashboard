@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { ChangeEvent, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useCreateContentMutation, useGetContentQuery } from "../../../features/settings/settingsApi";
+import { CustomLoading } from '../../../hooks/CustomLoading';
 import { baseURL } from '../../../utils/BaseURL';
 
 // Define types
@@ -113,7 +114,7 @@ const WebsiteSettings = () => {
   if (isLoadingContent) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="text-gray-600">Loading...</div>
+        <CustomLoading />
       </div>
     );
   }

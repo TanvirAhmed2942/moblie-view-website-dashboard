@@ -9,57 +9,77 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import Link from "next/link";
+import { useGetCampaignQuery } from '../../features/campaign/campaignApi';
 
 interface Campaign {
-  id: string;
-  campaignName: string;
-  donorsCount: number;
-  amount: string;
+  _id: string;
+  title: string;
+  overall_raised: number;
+  targetAmount: number;
   startDate: string;
-  status: "Active" | "Upcoming" | "Completed";
-  totalRaised: string;
-  target: string;
-  progress: number;
+  campaignStatus: string;
+  total_invitees: number;
+  // Additional fields from API that might be useful
+  endDate: string;
+  createdAt: string;
+  // You might need to add donor count if available in your API
+  // donorsCount: number;
 }
 
-const campaigns: Campaign[] = [
-  {
-    id: "1",
-    campaignName: "Rise Beyond Trafficking",
-    donorsCount: 224,
-    amount: "$200.00",
-    startDate: "12-12-2025",
-    status: "Active",
-    totalRaised: "$88,000.00",
-    target: "$100,000.00",
-    progress: 22,
-  },
-  {
-    id: "2",
-    campaignName: "Rise Beyond Trafficking",
-    donorsCount: 23,
-    amount: "$200.00",
-    startDate: "12-12-2025",
-    status: "Upcoming",
-    totalRaised: "$88,000.00",
-    target: "$100,000.00",
-    progress: 0,
-  },
-  {
-    id: "3",
-    campaignName: "Rise Beyond Trafficking",
-    donorsCount: 43,
-    amount: "$200.00",
-    startDate: "12-12-2025",
-    status: "Completed",
-    totalRaised: "$100,000.00",
-    target: "$100,000.00",
-    progress: 100,
-  },
-];
+// Helper function to determine status based on dates
+const getCampaignStatus = (campaign: Campaign): "Active" | "Upcoming" | "Completed" => {
+  const now = new Date();
+  const startDate = new Date(campaign.startDate);
+  const endDate = new Date(campaign.endDate);
+
+  if (now < startDate) {
+    return "Upcoming";
+  } else if (now > endDate) {
+    return "Completed";
+  } else {
+    return "Active";
+  }
+};
+
+// Helper function to format currency
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+};
+
+// Helper function to format date
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+};
+
+// Helper function to calculate progress percentage
+const calculateProgress = (raised: number, target: number) => {
+  if (target === 0) return 0;
+  const progress = (raised / target) * 100;
+  return Math.min(Math.round(progress), 100); // Cap at 100%
+};
 
 function ExistingCampaignTable() {
-  const getStatusBadge = (status: Campaign["status"]) => {
+  const { data: campaignsResponse, isLoading } = useGetCampaignQuery({});
+
+  // Log for debugging
+  console.log("ExistingCampaignTable - campaignsResponse:", campaignsResponse?.data?.result);
+
+  // Get campaigns from API response, take only first 5
+  const campaigns: Campaign[] = campaignsResponse?.data?.result
+    ? campaignsResponse.data.result.slice(0, 5)
+    : [];
+
+  const getStatusBadge = (status: "Active" | "Upcoming" | "Completed") => {
     switch (status) {
       case "Active":
         return (
@@ -83,6 +103,50 @@ function ExistingCampaignTable() {
         return null;
     }
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Campaign Overview
+          </h2>
+          <Link
+            href="/campaigns"
+            className="text-green-600 hover:text-green-700 font-medium text-sm"
+          >
+            View All
+          </Link>
+        </div>
+        <div className="border rounded-lg p-8 text-center">
+          <div className="animate-pulse">Loading campaigns...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show empty state if no campaigns
+  if (!campaigns || campaigns.length === 0) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Campaign Overview
+          </h2>
+          <Link
+            href="/campaigns"
+            className="text-green-600 hover:text-green-700 font-medium text-sm"
+          >
+            View All
+          </Link>
+        </div>
+        <div className="border rounded-lg p-8 text-center">
+          <p className="text-gray-500">No campaigns found</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -123,38 +187,37 @@ function ExistingCampaignTable() {
               <TableHead className="text-gray-700 font-semibold">
                 Target
               </TableHead>
-              <TableHead className="text-gray-700 font-semibold">
-                Campaign Progress
-              </TableHead>
+
             </TableRow>
           </TableHeader>
           <TableBody>
-            {campaigns.map((campaign) => (
-              <TableRow key={campaign.id} className="bg-white hover:bg-gray-50">
-                <TableCell className="font-medium">
-                  {campaign.campaignName}
-                </TableCell>
-                <TableCell>{campaign.donorsCount}</TableCell>
-                <TableCell>{campaign.amount}</TableCell>
-                <TableCell>{campaign.startDate}</TableCell>
-                <TableCell>{getStatusBadge(campaign.status)}</TableCell>
-                <TableCell>{campaign.totalRaised}</TableCell>
-                <TableCell>{campaign.target}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2 min-w-[120px]">
-                    <span className="text-sm font-medium text-gray-700">
-                      {campaign.progress}%
-                    </span>
-                    <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-purple-600 transition-all"
-                        style={{ width: `${campaign.progress}%` }}
-                      />
-                    </div>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+            {campaigns.map((campaign) => {
+              const status = getCampaignStatus(campaign);
+
+
+              return (
+                <TableRow key={campaign._id} className="bg-white hover:bg-gray-50">
+                  <TableCell className="font-medium">
+                    {campaign.title}
+                  </TableCell>
+                  <TableCell>
+                    {/* Using total_invitees as donors count - adjust if you have actual donor count */}
+                    {campaign.total_invitees || 0}
+                  </TableCell>
+                  <TableCell>
+                    {/* This could be average donation amount - adjust based on your data */}
+                    {formatCurrency(campaign.overall_raised > 0 && campaign.total_invitees > 0
+                      ? campaign.overall_raised / campaign.total_invitees
+                      : 0)}
+                  </TableCell>
+                  <TableCell>{formatDate(campaign.startDate)}</TableCell>
+                  <TableCell>{getStatusBadge(status)}</TableCell>
+                  <TableCell>{formatCurrency(campaign.overall_raised)}</TableCell>
+                  <TableCell>{formatCurrency(campaign.targetAmount)}</TableCell>
+
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>

@@ -273,11 +273,11 @@ function AboutTheCauseForm({
         </div>
 
         {/* Upload Image */}
-        <div className="space-y-2">
+        <div className="space-y-2 ">
           <Label className="text-gray-700">Upload Image</Label>
           {formData.imagePreview ? (
             <div className="space-y-2">
-              <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-gray-300 bg-gray-100">
+              <div className="relative w-full aspect-video rounded-lg overflow-hidden border h-[400px] border-gray-300 bg-gray-100">
                 {/* Use regular img tag instead of Next.js Image for base64 */}
                 <Image
                   src={formData.imagePreview}
@@ -295,15 +295,7 @@ function AboutTheCauseForm({
                 </button>
               </div>
 
-              {/* File information display */}
-              {formData.image && (
-                <div className="text-sm text-gray-600 p-3 bg-gray-50 rounded border">
-                  <p><strong>File Name:</strong> {formData.image.name}</p>
-                  <p><strong>File Type:</strong> {formData.image.type}</p>
-                  <p><strong>File Size:</strong> {(formData.image.size / 1024 / 1024).toFixed(2)} MB</p>
-                  <p><strong>Last Modified:</strong> {new Date(formData.image.lastModified).toLocaleDateString()}</p>
-                </div>
-              )}
+
             </div>
           ) : (
             <div

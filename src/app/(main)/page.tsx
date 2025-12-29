@@ -29,9 +29,9 @@ export default function Home() {
   }
 
   // If not authenticated, don't render anything (redirect is happening)
-  // if (!isAuthenticated) {
-  //   return null;
-  // }
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="">

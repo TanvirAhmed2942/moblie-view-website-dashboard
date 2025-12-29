@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { FaBullhorn, FaDollarSign, FaUserPlus, FaUsers } from "react-icons/fa";
 import { useOverviewDataQuery } from "../../features/overview/overviewApi";
+import { CustomLoading } from '../../hooks/CustomLoading';
 import { Card } from "../ui/card";
 import ActiveCampaignChart from "./ActiveCampaignChart";
 import ExistingCampaignTable from './ExistingCampaignTable';
@@ -11,10 +12,8 @@ function AnalyticsLayout() {
   const [selectedYear, setSelectedYear] = useState(currentYear);
 
   const { data, isLoading } = useOverviewDataQuery(selectedYear);
-  console.log("overview data", data);
 
   const apiData = data?.data;
-  console.log("Overview API Data:", apiData);
 
   const stats = [
     {
@@ -45,17 +44,14 @@ function AnalyticsLayout() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-sm text-gray-600 mt-1">Loading...</p>
-        </div>
+      <div className='h-[500px] flex justify-center items-center'>
+        <CustomLoading />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
+    <div className="space-y-6 p-6 bg-gray-50">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-sm text-gray-600 mt-1">

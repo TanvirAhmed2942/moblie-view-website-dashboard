@@ -1,7 +1,8 @@
 "use client";
-import { ArrowUp, Eye, Search } from "lucide-react";
+import { Eye, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useGetDonationsQuery, useGetSingleDonationsDetailsQuery } from "../../features/donations/donationsApi";
+import { CustomLoading } from '../../hooks/CustomLoading';
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -52,17 +53,7 @@ interface Transaction {
   updatedAt: string;
 }
 
-interface DonationsResponse {
-  data: {
-    result: Transaction[];
-    meta: {
-      total: number;
-      page: number;
-      limit: number;
-      totalPage: number;
-    };
-  };
-}
+
 
 // Helper function to format date
 const formatDate = (dateString: string) => {
@@ -223,10 +214,7 @@ function DonationTable() {
     }
   }, []);
 
-  const handleExport = () => {
-    console.log("Exporting donations...");
-    // Implement export functionality
-  };
+
 
   // Generate page buttons
   const renderPageButtons = useCallback(() => {
@@ -313,11 +301,8 @@ function DonationTable() {
   // Loading state
   if (isLoading && currentPage === 1) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading donations...</p>
-        </div>
+      <div className="flex items-center justify-center h-[500px]">
+        <CustomLoading />
       </div>
     );
   }
@@ -335,7 +320,7 @@ function DonationTable() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-3 bg-white/80 rounded">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-gray-900">Donations List</h1>
@@ -360,13 +345,13 @@ function DonationTable() {
               <SelectItem value="failed">Status: Failed</SelectItem>
             </SelectContent>
           </Select>
-          <Button
+          {/* <Button
             onClick={handleExport}
             className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 w-full md:w-auto"
           >
             <ArrowUp className="h-4 w-4 mr-2 rotate-45" />
             Export
-          </Button>
+          </Button> */}
         </div>
       </div>
 
