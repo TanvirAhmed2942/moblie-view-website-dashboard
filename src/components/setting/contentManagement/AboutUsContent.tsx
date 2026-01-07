@@ -68,7 +68,7 @@ const AboutUsContent = () => {
       if (apiData.founders && apiData.founders.length > 0 && apiData.founders[0].image) {
         setSelectedImages(prev => ({
           ...prev,
-          founderImage: baseURL + (apiData?.founders?.[0]?.image ?? '')
+          founderImage: baseURL + "/" + (apiData?.founders?.[0]?.image ?? '')
 
         }));
       }

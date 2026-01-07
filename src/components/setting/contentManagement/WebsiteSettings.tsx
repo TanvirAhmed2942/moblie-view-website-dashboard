@@ -45,7 +45,7 @@ const WebsiteSettings = () => {
 
       // Set logo from founders image
       if (contentData.logo) {
-        const imageUrl = `${baseURL || ''}${contentData.logo}`;
+        const imageUrl = `${baseURL || ''}/${contentData.logo}`;
         setSelectedImages(prev => ({
           ...prev,
           logo: imageUrl

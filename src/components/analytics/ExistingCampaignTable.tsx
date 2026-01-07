@@ -65,16 +65,12 @@ const formatDate = (dateString: string) => {
 const calculateProgress = (raised: number, target: number) => {
   if (target === 0) return 0;
   const progress = (raised / target) * 100;
-  return Math.min(Math.round(progress), 100); // Cap at 100%
+  return Math.min(Math.round(progress), 100);
 };
 
 function ExistingCampaignTable() {
   const { data: campaignsResponse, isLoading } = useGetCampaignQuery({});
 
-  // Log for debugging
-  console.log("ExistingCampaignTable - campaignsResponse:", campaignsResponse?.data?.result);
-
-  // Get campaigns from API response, take only first 5
   const campaigns: Campaign[] = campaignsResponse?.data?.result
     ? campaignsResponse.data.result.slice(0, 5)
     : [];
@@ -193,8 +189,6 @@ function ExistingCampaignTable() {
           <TableBody>
             {campaigns.map((campaign) => {
               const status = getCampaignStatus(campaign);
-
-
               return (
                 <TableRow key={campaign._id} className="bg-white hover:bg-gray-50">
                   <TableCell className="font-medium">
@@ -214,7 +208,6 @@ function ExistingCampaignTable() {
                   <TableCell>{getStatusBadge(status)}</TableCell>
                   <TableCell>{formatCurrency(campaign.overall_raised)}</TableCell>
                   <TableCell>{formatCurrency(campaign.targetAmount)}</TableCell>
-
                 </TableRow>
               );
             })}

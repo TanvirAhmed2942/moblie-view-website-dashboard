@@ -13,7 +13,6 @@ import UpdateSendingConfiguration from '../../../components/setting/notification
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('content');
-
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="">

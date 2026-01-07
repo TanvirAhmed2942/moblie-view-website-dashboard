@@ -100,7 +100,7 @@ const AboutCauseContent = () => {
       if (apiData.gallery && Array.isArray(apiData.gallery)) {
         setSelectedImages(prev => ({
           ...prev,
-          aboutImages: apiData.gallery.map((image: string) => `${baseURL}${image}`)
+          aboutImages: apiData.gallery.map((image: string) => `${baseURL}/${image}`)
         }));
       }
     }

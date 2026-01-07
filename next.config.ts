@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
         hostname: "ismail4001.binarybards.online",
         pathname: "/**",
       },
+      {
+        protocol: "http",
+        hostname: "204.197.173.144",
+        pathname: "/**",
+      },
     ],
   },
   turbopack: {
