@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
         hostname: "204.197.173.144",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "api.gopassit.org",
+        pathname: "/**",
+      },
     ],
   },
   turbopack: {
