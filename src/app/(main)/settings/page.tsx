@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import AboutCauseContent from '../../../components/setting/contentManagement/AboutCauseContent';
 import AboutUsContent from '../../../components/setting/contentManagement/AboutUsContent';
 import DownlineContent from '../../../components/setting/contentManagement/DownlineContent';
 import PrivacyPolicyContent from '../../../components/setting/contentManagement/PrivacyPolicyContent';
@@ -59,13 +58,13 @@ const Settings = () => {
           <div className="space-y-6">
             {/* Website Settings */}
 
-            <WebsiteSettings />
+            {/* <WebsiteSettings /> */}
 
             {/* About Us Content */}
             <AboutUsContent />
 
             {/* About the Cause Content */}
-            <AboutCauseContent />
+            {/* <AboutCauseContent /> */}
             {/* Downline Content */}
             <DownlineContent />
             {/* Privacy Policy Content - UPDATED VERSION */}
