@@ -13,9 +13,7 @@ interface OrganizationInformationFormProps {
 
 export interface OrganizationFormData {
   organization_name: string;
-  organization_network: string;
   organization_type: string;
-  organization_taxId: string;
   organization_website: string;
   organization_address: string;
 }
@@ -26,9 +24,7 @@ function OrganizationInformationForm({
 }: OrganizationInformationFormProps) {
   const [formData, setFormData] = useState<OrganizationFormData>({
     organization_name: initialData?.organization_name || "",
-    organization_network: initialData?.organization_network || "",
     organization_type: initialData?.organization_type || "",
-    organization_taxId: initialData?.organization_taxId || "",
     organization_website: initialData?.organization_website || "",
     organization_address: initialData?.organization_address || "",
   });
@@ -37,8 +33,6 @@ function OrganizationInformationForm({
 
   const handleChange = (field: keyof OrganizationFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-
-    // Clear error for this field when user types
     if (errors[field]) {
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -55,17 +49,12 @@ function OrganizationInformationForm({
       newErrors.organization_name = "Organization name is required";
     }
 
-    if (!formData.organization_network.trim()) {
-      newErrors.organization_network = "Organization network is required";
-    }
+
 
     if (!formData.organization_type.trim()) {
       newErrors.organization_type = "Organization type is required";
     }
 
-    if (!formData.organization_taxId.trim()) {
-      newErrors.organization_taxId = "Tax ID/EIN is required";
-    }
 
     if (!formData.organization_address.trim()) {
       newErrors.organization_address = "Address is required";
@@ -111,27 +100,6 @@ function OrganizationInformationForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="organization_network" className="text-gray-700">
-              Organization Network:
-              <span className="text-red-500 ml-1">*</span>
-            </Label>
-            <Input
-              id="organization_network"
-              value={formData.organization_network}
-              onChange={(e) => handleChange("organization_network", e.target.value)}
-              placeholder="Enter your organization network here..."
-              className={`bg-gray-50 border-gray-200 ${errors.organization_network ? 'border-red-500' : ''}`}
-              required
-            />
-            {errors.organization_network && (
-              <p className="text-red-500 text-sm mt-1">{errors.organization_network}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Organization Type and Tax ID Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
             <Label htmlFor="organization_type" className="text-gray-700">
               Organization Type:
               <span className="text-red-500 ml-1">*</span>
@@ -149,23 +117,7 @@ function OrganizationInformationForm({
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="organization_taxId" className="text-gray-700">
-              Tax ID / EIN:
-              <span className="text-red-500 ml-1">*</span>
-            </Label>
-            <Input
-              id="organization_taxId"
-              value={formData.organization_taxId}
-              onChange={(e) => handleChange("organization_taxId", e.target.value)}
-              placeholder="Enter your tax ID / EIN here..."
-              className={`bg-gray-50 border-gray-200 ${errors.organization_taxId ? 'border-red-500' : ''}`}
-              required
-            />
-            {errors.organization_taxId && (
-              <p className="text-red-500 text-sm mt-1">{errors.organization_taxId}</p>
-            )}
-          </div>
+
         </div>
 
         {/* Website */}

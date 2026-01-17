@@ -65,8 +65,6 @@ function NewCampaignLayout() {
   const [createCampaign, { isLoading }] = useCreateCampaignMutation();
 
   const handleFormDataChange = useCallback((stepId: string, data: unknown) => {
-    console.log(`Step ${stepId} data:`, data);
-
     setFormData(prev => ({
       ...prev,
       [stepId]: data,
@@ -125,9 +123,7 @@ function NewCampaignLayout() {
     try {
       const data = {
         organization_name: formData.organization?.organization_name,
-        organization_network: formData.organization?.organization_network,
         organization_type: formData.organization?.organization_type,
-        organization_taxId: formData.organization?.organization_taxId,
         organization_website: formData.organization?.organization_website,
         organization_address: formData.organization?.organization_address,
         contactPerson_name: formData.contact?.contactPerson_name,
@@ -136,35 +132,41 @@ function NewCampaignLayout() {
         cause_title: formData.cause?.cause_title,
         cause_description: formData.cause?.cause_description,
         cause_mission: formData.cause?.cause_mission,
+        citiesServed: formData.cause?.cities_served,
+        yearsOfOperation: formData.cause?.yearsOfOperation,
+        survivorsSupported: formData.cause?.survivors_support,
         title: formData.settings?.title,
-        address: formData.settings?.address,
         description: formData.settings?.description,
-        donor_name: formData.settings?.donor_name,
         targetAmount: formData.settings?.targetAmount ? Number(formData.settings.targetAmount) : 0,
         startDate: formData.settings?.startDate,
         endDate: formData.settings?.endDate,
-        dafPartner: formData.routing?.dafPartner,
-        internalTrackingId: formData.routing?.internalTrackingId,
+        internalTrackingId: formData.routing?.payment_url,
         campaignStatus: "active",
+
       };
+
+
 
       const makeCustomData = new FormData();
       makeCustomData.append("data", JSON.stringify(data));
-      if (formData.cause?.image) {
-        makeCustomData.append("image", formData.cause.image as File);
+
+      // Append all images
+      if (formData.cause?.images && formData.cause.images.length > 0) {
+        formData.cause.images.forEach((image) => {
+          makeCustomData.append(`images`, image as File);
+        });
       }
 
       const response = await createCampaign(makeCustomData).unwrap();
       console.log("Campaign created successfully:", response);
 
-      // Show success message or redirect
       alert("Campaign published successfully!");
 
     } catch (error) {
       console.error("Error creating campaign:", error);
       alert("Failed to publish campaign. Please try again.");
     }
-  }, [formData, createCampaign]);
+  }, [formData, createCampaign])
 
   // Map steps to form components
   const formSteps = [
@@ -220,7 +222,7 @@ function NewCampaignLayout() {
       title: "Donation Routing",
       component: React.createElement(DonationRoutingForm, {
         onNext: handlePublish,
-        loading:isLoading,
+        loading: isLoading,
         onBack: () => setCurrentStep(4),
         initialData: formData.routing || undefined,
       }),

@@ -43,6 +43,7 @@ export interface CampaignData {
   address?: string;
   campaignImage?: string;
   cause_image?: string;
+  images?: string[];
   organization_name?: string;
   title?: string;
   organization_website?: string;
@@ -59,12 +60,14 @@ export interface CampaignData {
   description?: string;
   targetAmount?: number;
   campaignStatus?: string;
+  yearsOfOperation?: number;
+  organization_network?: string;
 }
 
 interface CampaignViewEditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  campaign: CampaignData | null; // Changed from any
+  campaign: CampaignData | null;
   mode: "view" | "edit";
   onSuccess?: () => void;
 }
@@ -77,15 +80,15 @@ function CampaignViewEditModal({
   onSuccess,
 }: CampaignViewEditModalProps) {
   const [formData, setFormData] = useState<CampaignData | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [updateCampaign] = useUpdateCampaignMutation();
 
   useEffect(() => {
     if (campaign) {
       // Transform API response to form data
-      setFormData({
+      const transformedData: CampaignData = {
         id: campaign._id || campaign.id,
         organizationName: campaign.organization_name || "",
         campaignName: campaign.title || "",
@@ -107,6 +110,7 @@ function CampaignViewEditModal({
         organizationType: campaign.organization_type || "",
         address: campaign.organization_address || campaign.address || "",
         cause_image: campaign.cause_image || "",
+        images: campaign.images || [],
         organization_name: campaign.organization_name || "",
         title: campaign.title || "",
         organization_website: campaign.organization_website || "",
@@ -120,13 +124,23 @@ function CampaignViewEditModal({
         organization_taxId: campaign.organization_taxId || "",
         organization_type: campaign.organization_type || "",
         organization_address: campaign.organization_address || "",
+        organization_network: campaign.organization_network || "",
         description: campaign.description || "",
         targetAmount: campaign.targetAmount || 0,
+        yearsOfOperation: campaign.yearsOfOperation || 0,
         campaignStatus: campaign.campaignStatus || "draft",
-      });
+      };
 
-      if (campaign.cause_image) {
-        setImagePreview(baseURL + campaign.cause_image);
+      setFormData(transformedData);
+
+      // Set image previews from existing images
+      if (campaign.images && campaign.images.length > 0) {
+        const previews = campaign.images.map(img => baseURL + img);
+        setImagePreviews(previews);
+      } else if (campaign.cause_image) {
+        setImagePreviews([baseURL + campaign.cause_image]);
+      } else {
+        setImagePreviews([]);
       }
     }
   }, [campaign, isOpen]);
@@ -138,14 +152,44 @@ function CampaignViewEditModal({
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedImage(file);
+    const files = e.target.files;
+    if (!files) return;
+
+    const newImages = Array.from(files);
+    setSelectedImages(prev => [...prev, ...newImages]);
+
+    // Create previews for new images
+    newImages.forEach(file => {
       const reader = new FileReader();
       reader.onload = (event) => {
-        setImagePreview(event.target?.result as string);
+        if (event.target?.result) {
+          setImagePreviews(prev => [...prev, event.target.result as string]);
+        }
       };
       reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (index: number) => {
+    if (index < imagePreviews.length) {
+      // Check if it's a new image or existing image
+      const existingImagesCount = (formData?.images?.length || 0);
+
+      if (index < existingImagesCount) {
+        // This is an existing image, mark it for deletion
+        if (formData?.images) {
+          const updatedImages = [...formData.images];
+          updatedImages.splice(index, 1);
+          setFormData({ ...formData, images: updatedImages });
+        }
+      } else {
+        // This is a newly added image, remove from selectedImages
+        const newImageIndex = index - existingImagesCount;
+        setSelectedImages(prev => prev.filter((_, i) => i !== newImageIndex));
+      }
+
+      // Remove from previews
+      setImagePreviews(prev => prev.filter((_, i) => i !== index));
     }
   };
 
@@ -163,6 +207,7 @@ function CampaignViewEditModal({
       organization_type: formData.organizationType,
       organization_taxId: formData.taxId,
       organization_address: formData.address,
+      organization_network: formData.organization_network,
       contactPerson_name: formData.contactFullName,
       contactPerson_email: formData.contactEmail,
       contactPerson_phone: formData.contactPhone,
@@ -178,7 +223,10 @@ function CampaignViewEditModal({
       endDate: formData.endDate,
       dafPartner: formData.dafPartner,
       internalTrackingId: formData.internalTrackingId,
+      yearsOfOperation: formData.yearsOfOperation,
       campaignStatus: formData.campaignStatus,
+      // Send existing images that are not removed
+      images: formData.images || [],
     };
 
     console.log("Final campaign data:", campaignData);
@@ -186,9 +234,10 @@ function CampaignViewEditModal({
     const formDataToSend = new FormData();
     formDataToSend.append("data", JSON.stringify(campaignData));
 
-    if (selectedImage) {
-      formDataToSend.append("image", selectedImage);
-    }
+    // Append all new images
+    selectedImages.forEach((image, index) => {
+      formDataToSend.append("images", image);
+    });
 
     return { formData: formDataToSend, id: formData.id };
   };
@@ -272,39 +321,51 @@ function CampaignViewEditModal({
                 <div className="space-y-4">
                   <div>
                     <Label className="text-gray-700 font-medium mb-2 block">
-                      Campaign Image
+                      Campaign Images
                     </Label>
-                    <div className="relative w-full h-48 rounded-lg overflow-hidden border border-gray-300 bg-gray-100">
-                      {imagePreview ? (
-                        <Image
-                          src={imagePreview}
-                          alt="Campaign Preview"
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
-                      ) : formData.cause_image ? (
-                        <Image
-                          src={baseURL + formData.cause_image}
-                          alt="Campaign"
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                          <span className="text-gray-400">No image</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                      {imagePreviews.map((preview, index) => (
+                        <div key={index} className="relative group">
+                          <div className="relative w-full h-48 rounded-lg overflow-hidden border border-gray-300 bg-gray-100">
+                            <Image
+                              src={preview}
+                              alt={`Campaign Image ${index + 1}`}
+                              fill
+                              className="object-cover"
+                              unoptimized
+                            />
+                            {isEditMode && (
+                              <button
+                                type="button"
+                                onClick={() => removeImage(index)}
+                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      {imagePreviews.length === 0 && (
+                        <div className="col-span-full w-full h-48 rounded-lg border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center">
+                          <span className="text-gray-400">No images added</span>
                         </div>
                       )}
                     </div>
                     {isEditMode && (
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="mt-2"
-                        disabled={isSaving}
-                      />
+                      <div>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageChange}
+                          className="mt-2"
+                          disabled={isSaving}
+                          multiple
+                        />
+                        <p className="text-sm text-gray-500 mt-1">
+                          You can select multiple images
+                        </p>
+                      </div>
                     )}
                   </div>
                   <div>
@@ -342,6 +403,25 @@ function CampaignViewEditModal({
                     ) : (
                       <p className="mt-1 text-gray-900 whitespace-pre-wrap">
                         {formData.longDescription}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <Label className="text-gray-700 font-medium">
+                      Mission Statement
+                    </Label>
+                    {isEditMode ? (
+                      <Textarea
+                        value={formData.missionStatement || ""}
+                        onChange={(e) =>
+                          handleInputChange("missionStatement", e.target.value)
+                        }
+                        className="mt-1 border-gray-300 min-h-[80px]"
+                        disabled={isSaving}
+                      />
+                    ) : (
+                      <p className="mt-1 text-gray-900 whitespace-pre-wrap">
+                        {formData.missionStatement}
                       </p>
                     )}
                   </div>
@@ -491,29 +571,51 @@ function CampaignViewEditModal({
                       )}
                     </div>
                   </div>
-                  <div>
-                    <Label className="text-gray-700 font-medium">
-                      Campaign Status:
-                    </Label>
-                    {isEditMode ? (
-                      <select
-                        value={formData.campaignStatus || "draft"}
-                        onChange={(e) =>
-                          handleInputChange("campaignStatus", e.target.value)
-                        }
-                        className="mt-1 w-full p-2 border border-gray-300 rounded-md"
-                        disabled={isSaving}
-                      >
-                        <option value="draft">Draft</option>
-                        <option value="active">Active</option>
-                        <option value="upcoming">Upcoming</option>
-                        <option value="completed">Completed</option>
-                      </select>
-                    ) : (
-                      <p className="mt-1 text-gray-900">
-                        {formData.campaignStatus ? formData.campaignStatus.charAt(0).toUpperCase() + formData.campaignStatus.slice(1) : ''}
-                      </p>
-                    )}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-gray-700 font-medium">
+                        Years of Operation:
+                      </Label>
+                      {isEditMode ? (
+                        <Input
+                          type="number"
+                          value={formData.yearsOfOperation || ""}
+                          onChange={(e) =>
+                            handleInputChange("yearsOfOperation", parseInt(e.target.value) || 0)
+                          }
+                          className="mt-1 border-gray-300"
+                          disabled={isSaving}
+                        />
+                      ) : (
+                        <p className="mt-1 text-gray-900">
+                          {formData.yearsOfOperation}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <Label className="text-gray-700 font-medium">
+                        Campaign Status:
+                      </Label>
+                      {isEditMode ? (
+                        <select
+                          value={formData.campaignStatus || "draft"}
+                          onChange={(e) =>
+                            handleInputChange("campaignStatus", e.target.value)
+                          }
+                          className="mt-1 w-full p-2 border border-gray-300 rounded-md"
+                          disabled={isSaving}
+                        >
+                          <option value="draft">Draft</option>
+                          <option value="active">Active</option>
+                          <option value="upcoming">Upcoming</option>
+                          <option value="completed">Completed</option>
+                        </select>
+                      ) : (
+                        <p className="mt-1 text-gray-900">
+                          {formData.campaignStatus ? formData.campaignStatus.charAt(0).toUpperCase() + formData.campaignStatus.slice(1) : ''}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -594,28 +696,10 @@ function CampaignViewEditModal({
                   Donation Routing
                 </h3>
                 <div className="space-y-4">
+
                   <div>
                     <Label className="text-gray-700 font-medium">
-                      DAF Partner:
-                    </Label>
-                    {isEditMode ? (
-                      <Input
-                        value={formData.dafPartner || ""}
-                        onChange={(e) =>
-                          handleInputChange("dafPartner", e.target.value)
-                        }
-                        className="mt-1 border-gray-300"
-                        disabled={isSaving}
-                      />
-                    ) : (
-                      <p className="mt-1 text-gray-900">
-                        {formData.dafPartner}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label className="text-gray-700 font-medium">
-                      Internal Tracking ID:
+                      Payment URL:
                     </Label>
                     {isEditMode ? (
                       <Input
@@ -663,23 +747,7 @@ function CampaignViewEditModal({
                       </p>
                     )}
                   </div>
-                  <div>
-                    <Label className="text-gray-700 font-medium">
-                      Tax ID/EIN:
-                    </Label>
-                    {isEditMode ? (
-                      <Input
-                        value={formData.taxId || ""}
-                        onChange={(e) =>
-                          handleInputChange("taxId", e.target.value)
-                        }
-                        className="mt-1 border-gray-300"
-                        disabled={isSaving}
-                      />
-                    ) : (
-                      <p className="mt-1 text-gray-900">{formData.taxId}</p>
-                    )}
-                  </div>
+
                   <div>
                     <Label className="text-gray-700 font-medium">
                       Organization Type:
@@ -699,6 +767,7 @@ function CampaignViewEditModal({
                       </p>
                     )}
                   </div>
+
                   <div>
                     <Label className="text-gray-700 font-medium">
                       Website URL:
@@ -718,25 +787,7 @@ function CampaignViewEditModal({
                       </p>
                     )}
                   </div>
-                  <div>
-                    <Label className="text-gray-700 font-medium">
-                      Address:
-                    </Label>
-                    {isEditMode ? (
-                      <Textarea
-                        value={formData.address || ""}
-                        onChange={(e) =>
-                          handleInputChange("address", e.target.value)
-                        }
-                        className="mt-1 border-gray-300 min-h-[80px]"
-                        disabled={isSaving}
-                      />
-                    ) : (
-                      <p className="mt-1 text-gray-900 whitespace-pre-wrap">
-                        {formData.address}
-                      </p>
-                    )}
-                  </div>
+
                 </div>
               </div>
             </div>

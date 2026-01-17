@@ -1,9 +1,5 @@
 "use client";
 
-import React from "react";
-import { Settings, ChevronRight } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
   Sidebar,
   SidebarContent,
@@ -18,16 +14,18 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
-import Image from "next/image";
-import { useState } from "react";
 import provideIcon from "@/utils/provideIcon";
-import { HiMiniUsers } from "react-icons/hi2";
-import { Button } from "../ui/button";
-import { RiDashboardHorizontalFill, RiLogoutCircleRLine } from "react-icons/ri";
-import { MdCampaign } from "react-icons/md";
-import { useRouter } from "next/navigation";
+import { ChevronRight, Settings } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import React, { useState } from "react";
 import { GiPayMoney } from "react-icons/gi";
+import { HiMiniUsers } from "react-icons/hi2";
+import { MdCampaign } from "react-icons/md";
+import { RiDashboardHorizontalFill, RiLogoutCircleRLine } from "react-icons/ri";
 import LogoutConfirmationDialog from "../confirmation/logoutConfirmation";
+import { Button } from "../ui/button";
 type SidebarItem = {
   name: string;
   path: string;
@@ -53,6 +51,11 @@ const sidebars: SidebarItem[] = [
     path: "/campaigns",
     icon: MdCampaign,
   },
+  {
+    name: "Downline Content",
+    path: "/downline",
+    icon: MdCampaign,
+  },
 
   { name: "Settings", path: "/settings", icon: Settings },
 ];
@@ -71,6 +74,7 @@ export function AppSidebar() {
 
   const handleLogoutConfirm = () => {
     setIsLogoutModalOpen(false);
+    localStorage.removeItem("MobileViewAdmin");
     router.push("/auth/login");
   };
 
@@ -121,20 +125,18 @@ export function AppSidebar() {
                     <>
                       <SidebarMenuButton
                         onClick={() => toggleSubmenu(item.name)}
-                        className={`w-full hover:bg-purple-600 hover:text-white active:bg-purple-600 active:text-white ${
-                          isActive(item.path) ? "bg-purple-600 text-white" : ""
-                        }`}
+                        className={`w-full hover:bg-purple-600 hover:text-white active:bg-purple-600 active:text-white ${isActive(item.path) ? "bg-purple-600 text-white" : ""
+                          }`}
                       >
                         {item.isCustomIcon
                           ? provideIcon({ name: item.icon as string })
                           : React.createElement(
-                              item.icon as React.ComponentType
-                            )}
+                            item.icon as React.ComponentType
+                          )}
                         <span>{item.name}</span>
                         <ChevronRight
-                          className={`ml-auto transition-transform ${
-                            openSubmenus[item.name] ? "rotate-90" : ""
-                          }`}
+                          className={`ml-auto transition-transform ${openSubmenus[item.name] ? "rotate-90" : ""
+                            }`}
                         />
                       </SidebarMenuButton>
                       {openSubmenus[item.name] && (
@@ -144,9 +146,8 @@ export function AppSidebar() {
                               <SidebarMenuSubButton asChild>
                                 <Link
                                   href={policy.path}
-                                  className={`hover:bg-purple-600 text-white ${
-                                    isActive(policy.path) ? "bg-purple-600" : ""
-                                  }`}
+                                  className={`hover:bg-purple-600 text-white ${isActive(policy.path) ? "bg-purple-600" : ""
+                                    }`}
                                 >
                                   {policy.name}
                                 </Link>
@@ -159,16 +160,15 @@ export function AppSidebar() {
                   ) : (
                     <SidebarMenuButton
                       asChild
-                      className={`hover:bg-purple-600 hover:text-white ${
-                        isActive(item.path) ? "bg-purple-600 text-white" : ""
-                      }`}
+                      className={`hover:bg-purple-600 hover:text-white ${isActive(item.path) ? "bg-purple-600 text-white" : ""
+                        }`}
                     >
                       <Link href={item.path}>
                         {item.isCustomIcon
                           ? provideIcon({ name: item.icon as string })
                           : React.createElement(
-                              item.icon as React.ComponentType
-                            )}
+                            item.icon as React.ComponentType
+                          )}
                         <span>{item.name}</span>
                       </Link>
                     </SidebarMenuButton>

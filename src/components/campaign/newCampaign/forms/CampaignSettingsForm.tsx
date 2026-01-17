@@ -14,9 +14,7 @@ interface CampaignSettingsFormProps {
 
 export interface CampaignSettingsFormData {
   title: string;
-  address: string;
   description: string;
-  donor_name: string;
   targetAmount: string;
   startDate: string;
   endDate: string;
@@ -32,9 +30,7 @@ function CampaignSettingsForm({
 }: CampaignSettingsFormProps) {
   const [formData, setFormData] = useState<CampaignSettingsFormData>({
     title: initialData?.title || "",
-    address: initialData?.address || "",
     description: initialData?.description || "",
-    donor_name: initialData?.donor_name || "",
     targetAmount: initialData?.targetAmount || "",
     startDate: initialData?.startDate || "",
     endDate: initialData?.endDate || "",
@@ -85,8 +81,6 @@ function CampaignSettingsForm({
 
     // Validate other required fields
     if (!formData.title.trim()) newErrors.title = "Campaign title is required";
-    if (!formData.address.trim()) newErrors.address = "Address is required";
-    if (!formData.donor_name.trim()) newErrors.donor_name = "Donor name is required";
     if (!formData.startDate) newErrors.startDate = "Start date is required";
     if (!formData.endDate) newErrors.endDate = "End date is required";
 
@@ -148,24 +142,33 @@ function CampaignSettingsForm({
               <p className="text-red-500 text-sm mt-1">{errors.title}</p>
             )}
           </div>
-
           <div className="space-y-2">
-            <Label htmlFor="address" className="text-gray-700">
-              Address:
+            <Label htmlFor="targetAmount" className="text-gray-700">
+              Target Amount:
               <span className="text-red-500 ml-1">*</span>
             </Label>
-            <Input
-              id="address"
-              value={formData.address}
-              onChange={(e) => handleChange("address", e.target.value)}
-              placeholder="Enter your address here..."
-              className={`bg-gray-50 border-gray-200 ${errors.address ? 'border-red-500' : ''}`}
-              required
-            />
-            {errors.address && (
-              <p className="text-red-500 text-sm mt-1">{errors.address}</p>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <span className="text-gray-500">$</span>
+              </div>
+              <Input
+                id="targetAmount"
+                value={formData.targetAmount}
+                onChange={handleTargetAmountChange}
+                placeholder="0.00"
+                className={`bg-gray-50 border-gray-200 pl-8 ${errors.targetAmount ? 'border-red-500' : ''}`}
+                required
+                inputMode="decimal"
+              />
+            </div>
+            {errors.targetAmount && (
+              <p className="text-red-500 text-sm mt-1">{errors.targetAmount}</p>
             )}
+            <p className="text-sm text-gray-500 mt-1">
+              Enter numbers only (e.g., 1000 or 1500.50)
+            </p>
           </div>
+
         </div>
 
         {/* Description */}
@@ -208,54 +211,6 @@ function CampaignSettingsForm({
                 {descriptionCount}/{MAX_CHARACTERS}
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Donor Name and Target Amount Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label htmlFor="donor_name" className="text-gray-700">
-              Donor Name:
-              <span className="text-red-500 ml-1">*</span>
-            </Label>
-            <Input
-              id="donor_name"
-              value={formData.donor_name}
-              onChange={(e) => handleChange("donor_name", e.target.value)}
-              placeholder="Enter donor name here..."
-              className={`bg-gray-50 border-gray-200 ${errors.donor_name ? 'border-red-500' : ''}`}
-              required
-            />
-            {errors.donor_name && (
-              <p className="text-red-500 text-sm mt-1">{errors.donor_name}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="targetAmount" className="text-gray-700">
-              Target Amount:
-              <span className="text-red-500 ml-1">*</span>
-            </Label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <span className="text-gray-500">$</span>
-              </div>
-              <Input
-                id="targetAmount"
-                value={formData.targetAmount}
-                onChange={handleTargetAmountChange}
-                placeholder="0.00"
-                className={`bg-gray-50 border-gray-200 pl-8 ${errors.targetAmount ? 'border-red-500' : ''}`}
-                required
-                inputMode="decimal"
-              />
-            </div>
-            {errors.targetAmount && (
-              <p className="text-red-500 text-sm mt-1">{errors.targetAmount}</p>
-            )}
-            <p className="text-sm text-gray-500 mt-1">
-              Enter numbers only (e.g., 1000 or 1500.50)
-            </p>
           </div>
         </div>
 

@@ -13,8 +13,7 @@ interface DonationRoutingFormProps {
 }
 
 export interface DonationRoutingFormData {
-  dafPartner: string;
-  internalTrackingId: string;
+  payment_url: string;
 }
 
 function DonationRoutingForm({
@@ -24,8 +23,7 @@ function DonationRoutingForm({
   loading = false, // Default to false
 }: DonationRoutingFormProps) {
   const [formData, setFormData] = useState<DonationRoutingFormData>({
-    dafPartner: initialData?.dafPartner || "",
-    internalTrackingId: initialData?.internalTrackingId || "",
+    payment_url: initialData?.payment_url || "",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -49,11 +47,8 @@ function DonationRoutingForm({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.dafPartner.trim()) {
-      newErrors.dafPartner = "DAF Partner is required";
-    }
 
-    if (!formData.internalTrackingId.trim()) {
+    if (!formData.payment_url.trim()) {
       newErrors.internalTrackingId = "Internal tracking ID is required";
     }
 
@@ -76,43 +71,23 @@ function DonationRoutingForm({
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* DAF Partner */}
-        <div className="space-y-2">
-          <Label htmlFor="dafPartner" className="text-gray-700">
-            DAF Partner:
-            <span className="text-red-500 ml-1">*</span>
-          </Label>
-          <Input
-            id="dafPartner"
-            value={formData.dafPartner}
-            onChange={(e) => handleChange("dafPartner", e.target.value)}
-            placeholder="Enter your DAF Partner name here..."
-            className={`bg-gray-50 border-gray-200 ${errors.dafPartner ? 'border-red-500' : ''}`}
-            required
-            disabled={loading} // Disable input when loading
-          />
-          {errors.dafPartner && (
-            <p className="text-red-500 text-sm mt-1">{errors.dafPartner}</p>
-          )}
-        </div>
-
         {/* Internal Tracking ID */}
         <div className="space-y-2">
           <Label htmlFor="internalTrackingId" className="text-gray-700">
-            Internal tracking ID:
+            Payment URL:
             <span className="text-red-500 ml-1">*</span>
           </Label>
           <Input
             id="internalTrackingId"
-            value={formData.internalTrackingId}
-            onChange={(e) => handleChange("internalTrackingId", e.target.value)}
+            value={formData.payment_url}
+            onChange={(e) => handleChange("payment_url", e.target.value)}
             placeholder="Enter your internal tracking ID here..."
-            className={`bg-gray-50 border-gray-200 ${errors.internalTrackingId ? 'border-red-500' : ''}`}
+            className={`bg-gray-50 border-gray-200 ${errors.payment_url ? 'border-red-500' : ''}`}
             required
-            disabled={loading} // Disable input when loading
+            disabled={loading}
           />
-          {errors.internalTrackingId && (
-            <p className="text-red-500 text-sm mt-1">{errors.internalTrackingId}</p>
+          {errors.payment_url && (
+            <p className="text-red-500 text-sm mt-1">{errors.payment_url}</p>
           )}
         </div>
 

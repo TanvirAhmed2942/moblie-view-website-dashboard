@@ -7,7 +7,6 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ChangeEvent, useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
 import { useCreateContentMutation, useGetContentQuery } from '../../../features/settings/settingsApi';
 
 interface LevelOption {
@@ -147,15 +146,17 @@ const DownlineContent = () => {
     const data = new FormData();
     data.append('data', JSON.stringify(currentContent));
 
-    try {
-      const response = await DownlineContent(data).unwrap();
-      refetch();
-      toast.success(response.message || 'Settings saved successfully');
+    console.log(currentContent);
 
-    } catch (error) {
-      console.error('Error saving content:', error);
-      toast.error('Error saving content');
-    }
+    // try {
+    //   const response = await DownlineContent(data).unwrap();
+    //   refetch();
+    //   toast.success(response.message || 'Settings saved successfully');
+
+    // } catch (error) {
+    //   console.error('Error saving content:', error);
+    //   toast.error('Error saving content');
+    // }
   };
 
   // Update currentContent level when selectedLevel changes

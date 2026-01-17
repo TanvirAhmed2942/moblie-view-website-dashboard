@@ -71,12 +71,16 @@ function MultiForm({
             organization_taxId: getFormDataField(org, 'organization_taxId'),
             organization_website: getFormDataField(org, 'organization_website'),
             organization_address: getFormDataField(org, 'organization_address'),
+            contactPerson_title: getFormDataField(org, 'contactPerson_title'),
             contactPerson_name: getFormDataField(contact, 'contactPerson_name'),
             contactPerson_email: getFormDataField(contact, 'contactPerson_email'),
             contactPerson_phone: getFormDataField(contact, 'contactPerson_phone'),
             cause_title: getFormDataField(cause, 'cause_title'),
             cause_description: getFormDataField(cause, 'cause_description'),
             cause_mission: getFormDataField(cause, 'cause_mission'),
+            cities_served: getFormDataField(cause, 'cities_served'),
+            yearsOfOperation: parseFloat(getFormDataField(cause, 'yearsOfOperation') as string),
+            survivors_support: getFormDataField(cause, 'survivors_support'),
             title: getFormDataField(settings, 'title'),
             address: getFormDataField(settings, 'address'),
             description: getFormDataField(settings, 'description'),
@@ -85,24 +89,32 @@ function MultiForm({
             startDate: getFormDataField(settings, 'startDate'),
             endDate: getFormDataField(settings, 'endDate'),
             dafPartner: getFormDataField(routing, 'dafPartner'),
-            internalTrackingId: getFormDataField(routing, 'internalTrackingId'),
+            internalTrackingId: getFormDataField(routing, 'payment_url'),
           };
 
           console.log("Final campaign data:", campaignData);
 
           const formDataToSend = new FormData();
+
+          // JSON payload
           formDataToSend.append("data", JSON.stringify(campaignData));
 
-          const causeImage = getFormDataField(cause, 'image');
-          if (causeImage instanceof File) {
-            formDataToSend.append("image", causeImage);
+          // Images
+          const causeImages = getFormDataField(cause, 'images') as File[];
+
+          if (causeImages && Array.isArray(causeImages)) {
+            causeImages.forEach((file) => {
+              formDataToSend.append("images", file);
+            });
           }
+
+
 
           // Use async/await to handle the promise
           const response = await createCampaign(formDataToSend).unwrap();
           console.log("Campaign created successfully:", response);
           toast.success(response.message || "Campaign created successfully!");
-          router.push("/campaigns");
+          // router.push("/campaigns");
         }
       } catch (error) {
         console.error("Error in form submission:", error);
