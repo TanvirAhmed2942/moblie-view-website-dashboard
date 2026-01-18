@@ -35,9 +35,8 @@ function ContactPersonForm({
   const handleChange = (field: keyof ContactPersonFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
 
-    // Clear error for this field when user types
     if (errors[field]) {
-      setErrors(prev => {
+      setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[field];
         return newErrors;
@@ -73,8 +72,16 @@ function ContactPersonForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Trim all values before sending
+    const trimmedData: ContactPersonFormData = {
+      contactPerson_name: formData.contactPerson_name.trim(),
+      contactPerson_title: formData.contactPerson_title.trim(),
+      contactPerson_email: formData.contactPerson_email.trim(),
+      contactPerson_phone: formData.contactPerson_phone.trim(),
+    };
+
     if (validateForm()) {
-      onNext(formData);
+      onNext(trimmedData);
     }
   };
 
@@ -86,15 +93,15 @@ function ContactPersonForm({
         {/* Full Name */}
         <div className="space-y-2">
           <Label htmlFor="contactPerson_name" className="text-gray-700">
-            Full Name:
-            <span className="text-red-500 ml-1">*</span>
+            Full Name:<span className="text-red-500 ml-1">*</span>
           </Label>
           <Input
             id="contactPerson_name"
             value={formData.contactPerson_name}
             onChange={(e) => handleChange("contactPerson_name", e.target.value)}
             placeholder="Enter your name here..."
-            className={`bg-gray-50 border-gray-200 ${errors.contactPerson_name ? 'border-red-500' : ''}`}
+            className={`bg-gray-50 border-gray-200 ${errors.contactPerson_name ? "border-red-500" : ""
+              }`}
             required
           />
           {errors.contactPerson_name && (
@@ -105,15 +112,15 @@ function ContactPersonForm({
         {/* Title / Role */}
         <div className="space-y-2">
           <Label htmlFor="contactPerson_title" className="text-gray-700">
-            Title / Role:
-            <span className="text-red-500 ml-1">*</span>
+            Title / Role:<span className="text-red-500 ml-1">*</span>
           </Label>
           <Input
             id="contactPerson_title"
             value={formData.contactPerson_title}
             onChange={(e) => handleChange("contactPerson_title", e.target.value)}
             placeholder="Enter your title / role here..."
-            className={`bg-gray-50 border-gray-200 ${errors.contactPerson_title ? 'border-red-500' : ''}`}
+            className={`bg-gray-50 border-gray-200 ${errors.contactPerson_title ? "border-red-500" : ""
+              }`}
             required
           />
           {errors.contactPerson_title && (
@@ -124,8 +131,7 @@ function ContactPersonForm({
         {/* Email */}
         <div className="space-y-2">
           <Label htmlFor="contactPerson_email" className="text-gray-700">
-            Email:
-            <span className="text-red-500 ml-1">*</span>
+            Email:<span className="text-red-500 ml-1">*</span>
           </Label>
           <Input
             id="contactPerson_email"
@@ -133,7 +139,8 @@ function ContactPersonForm({
             value={formData.contactPerson_email}
             onChange={(e) => handleChange("contactPerson_email", e.target.value)}
             placeholder="Enter your email address here..."
-            className={`bg-gray-50 border-gray-200 ${errors.contactPerson_email ? 'border-red-500' : ''}`}
+            className={`bg-gray-50 border-gray-200 ${errors.contactPerson_email ? "border-red-500" : ""
+              }`}
             required
           />
           {errors.contactPerson_email && (
@@ -144,16 +151,16 @@ function ContactPersonForm({
         {/* Phone Number */}
         <div className="space-y-2">
           <Label htmlFor="contactPerson_phone" className="text-gray-700">
-            Phone Number:
-            <span className="text-red-500 ml-1">*</span>
+            Phone Number:<span className="text-red-500 ml-1">*</span>
           </Label>
           <Input
             id="contactPerson_phone"
-            type="number"
+            type="text"
             value={formData.contactPerson_phone}
             onChange={(e) => handleChange("contactPerson_phone", e.target.value)}
             placeholder="Enter your phone number here..."
-            className={`bg-gray-50 border-gray-200 ${errors.contactPerson_phone ? 'border-red-500' : ''}`}
+            className={`bg-gray-50 border-gray-200 ${errors.contactPerson_phone ? "border-red-500" : ""
+              }`}
             required
           />
           {errors.contactPerson_phone && (
@@ -161,7 +168,7 @@ function ContactPersonForm({
           )}
         </div>
 
-        {/* Action Buttons */}
+        {/* Buttons */}
         <div className="flex justify-end gap-4 pt-4">
           <Button
             type="button"
@@ -171,10 +178,7 @@ function ContactPersonForm({
           >
             Back
           </Button>
-          <Button
-            type="submit"
-            className="bg-purple-600 hover:bg-purple-700 text-white px-8"
-          >
+          <Button type="submit" className="bg-purple-600 hover:bg-purple-700 text-white px-8">
             Save & Continue
           </Button>
         </div>

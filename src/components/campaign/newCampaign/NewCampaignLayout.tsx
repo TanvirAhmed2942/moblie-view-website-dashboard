@@ -142,16 +142,13 @@ function NewCampaignLayout() {
         endDate: formData.settings?.endDate,
         internalTrackingId: formData.routing?.payment_url,
         campaignStatus: "active",
-
       };
-
-
 
       const makeCustomData = new FormData();
       makeCustomData.append("data", JSON.stringify(data));
 
-      // Append all images
-      if (formData.cause?.images && formData.cause.images.length > 0) {
+      //   // Append all images
+      if (formData.cause?.images && formData.cause.images.length > 0){
         formData.cause.images.forEach((image) => {
           makeCustomData.append(`images`, image as File);
         });
@@ -159,9 +156,7 @@ function NewCampaignLayout() {
 
       const response = await createCampaign(makeCustomData).unwrap();
       console.log("Campaign created successfully:", response);
-
       alert("Campaign published successfully!");
-
     } catch (error) {
       console.error("Error creating campaign:", error);
       alert("Failed to publish campaign. Please try again.");
