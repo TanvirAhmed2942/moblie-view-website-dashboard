@@ -92,10 +92,7 @@ function MultiForm({
             internalTrackingId: getFormDataField(routing, 'payment_url'),
           };
 
-          console.log("Final campaign data:", campaignData);
-
           const formDataToSend = new FormData();
-
           // JSON payload
           formDataToSend.append("data", JSON.stringify(campaignData));
 
@@ -107,9 +104,6 @@ function MultiForm({
               formDataToSend.append("images", file);
             });
           }
-
-
-
           // Use async/await to handle the promise
           const response = await createCampaign(formDataToSend).unwrap();
           console.log("Campaign created successfully:", response);
