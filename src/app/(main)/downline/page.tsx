@@ -450,7 +450,7 @@ const DownlineContentTable = () => {
               {contents.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                    No content found. Click "Create Downline Content" to add new content.
+                    No content found. Click &quot;Create Downline Content&quot; to add new content.
                   </TableCell>
                 </TableRow>
               ) : (

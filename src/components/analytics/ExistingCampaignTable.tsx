@@ -61,13 +61,6 @@ const formatDate = (dateString: string) => {
   });
 };
 
-// Helper function to calculate progress percentage
-const calculateProgress = (raised: number, target: number) => {
-  if (target === 0) return 0;
-  const progress = (raised / target) * 100;
-  return Math.min(Math.round(progress), 100);
-};
-
 function ExistingCampaignTable() {
   const { data: campaignsResponse, isLoading } = useGetCampaignQuery({});
 

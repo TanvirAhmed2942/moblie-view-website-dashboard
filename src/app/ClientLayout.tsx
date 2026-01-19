@@ -13,6 +13,7 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
   const [authorized, setAuthorized] = useState(false);
+  console.log("ClientLayout - Authorized:", authorized);
 
   useEffect(() => {
     const token = localStorage.getItem('MobileViewAdmin');

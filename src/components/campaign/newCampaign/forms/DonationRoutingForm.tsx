@@ -9,7 +9,7 @@ interface DonationRoutingFormProps {
   onNext: (data: DonationRoutingFormData) => void;
   onBack: () => void;
   initialData?: DonationRoutingFormData;
-  loading?: boolean; // Add loading prop
+  loading?: boolean;
 }
 
 export interface DonationRoutingFormData {
@@ -20,7 +20,7 @@ function DonationRoutingForm({
   onNext,
   onBack,
   initialData,
-  loading = false, // Default to false
+  loading = false,
 }: DonationRoutingFormProps) {
   const [formData, setFormData] = useState<DonationRoutingFormData>({
     payment_url: initialData?.payment_url || "",
@@ -28,15 +28,13 @@ function DonationRoutingForm({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleChange = (
-    field: keyof DonationRoutingFormData,
-    value: string
-  ) => {
+  // Handle input changes
+  const handleChange = (field: keyof DonationRoutingFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
 
     // Clear error for this field when user types
     if (errors[field]) {
-      setErrors(prev => {
+      setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[field];
         return newErrors;
@@ -44,12 +42,12 @@ function DonationRoutingForm({
     }
   };
 
+  // Form validation
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-
     if (!formData.payment_url.trim()) {
-      newErrors.internalTrackingId = "Internal tracking ID is required";
+      newErrors.payment_url = "Payment URL is required";
     }
 
     setErrors(newErrors);
@@ -66,23 +64,22 @@ function DonationRoutingForm({
 
   return (
     <div className="bg-white border rounded-lg shadow-sm p-8">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">
-        Donation Routing
-      </h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">Donation Routing</h2>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Internal Tracking ID */}
+        {/* Payment URL */}
         <div className="space-y-2">
-          <Label htmlFor="internalTrackingId" className="text-gray-700">
+          <Label htmlFor="payment_url" className="text-gray-700">
             Payment URL:
             <span className="text-red-500 ml-1">*</span>
           </Label>
           <Input
-            id="internalTrackingId"
+            id="payment_url"
             value={formData.payment_url}
             onChange={(e) => handleChange("payment_url", e.target.value)}
-            placeholder="Enter your internal tracking ID here..."
-            className={`bg-gray-50 border-gray-200 ${errors.payment_url ? 'border-red-500' : ''}`}
+            placeholder="Enter your payment URL here..."
+            className={`bg-gray-50 border-gray-200 ${errors.payment_url ? "border-red-500" : ""
+              }`}
             required
             disabled={loading}
           />
@@ -98,18 +95,18 @@ function DonationRoutingForm({
             variant="outline"
             onClick={onBack}
             className="border-purple-300 text-purple-700 hover:bg-purple-50 px-8"
-            disabled={loading} // Disable back button when loading
+            disabled={loading}
           >
             Back
           </Button>
           <Button
             type="submit"
-            className="bg-green-600 hover:bg-green-700 text-white px-8"
-            disabled={loading} // Disable button when loading
+            className="bg-green-600 hover:bg-green-700 text-white px-8 flex items-center justify-center"
+            disabled={loading}
           >
             {loading ? (
               <>
-                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite] mr-2"></span>
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent mr-2"></span>
                 Publishing Campaign...
               </>
             ) : (

@@ -26,6 +26,8 @@ export interface AboutTheCauseFormData {
   imagePreviews?: string[]; // Changed to array of base64 strings
 }
 
+
+
 const MAX_CHARACTERS = 280;
 const MIN_CASE_DESCRIPTION_CHARS = 10;
 const MAX_IMAGES = 10; // Maximum number of images allowed

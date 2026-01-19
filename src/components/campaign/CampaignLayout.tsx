@@ -4,10 +4,7 @@ function CampaignLayout() {
 
   return (
     <div>
-
-
       <CampaignListTable />
-
     </div>
   );
 }

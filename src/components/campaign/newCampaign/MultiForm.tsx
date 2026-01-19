@@ -66,12 +66,10 @@ function MultiForm({
 
           const campaignData = {
             organization_name: getFormDataField(org, 'organization_name'),
-            organization_network: getFormDataField(org, 'organization_network'),
             organization_type: getFormDataField(org, 'organization_type'),
-            organization_taxId: getFormDataField(org, 'organization_taxId'),
             organization_website: getFormDataField(org, 'organization_website'),
             organization_address: getFormDataField(org, 'organization_address'),
-            contactPerson_title: getFormDataField(org, 'contactPerson_title'),
+            contactPerson_title: getFormDataField(contact, 'contactPerson_title'),
             contactPerson_name: getFormDataField(contact, 'contactPerson_name'),
             contactPerson_email: getFormDataField(contact, 'contactPerson_email'),
             contactPerson_phone: getFormDataField(contact, 'contactPerson_phone'),
@@ -82,21 +80,20 @@ function MultiForm({
             yearsOfOperation: parseFloat(getFormDataField(cause, 'yearsOfOperation') as string),
             survivors_support: getFormDataField(cause, 'survivors_support'),
             title: getFormDataField(settings, 'title'),
-            address: getFormDataField(settings, 'address'),
             description: getFormDataField(settings, 'description'),
-            donor_name: getFormDataField(settings, 'donor_name'),
             targetAmount: getFormDataField(settings, 'targetAmount') ? Number(getFormDataField(settings, 'targetAmount')) : 0,
             startDate: getFormDataField(settings, 'startDate'),
             endDate: getFormDataField(settings, 'endDate'),
-            dafPartner: getFormDataField(routing, 'dafPartner'),
             internalTrackingId: getFormDataField(routing, 'payment_url'),
           };
 
+          console.log("Campaign data:", campaignData);
+
           const formDataToSend = new FormData();
-          // JSON payload
+
           formDataToSend.append("data", JSON.stringify(campaignData));
 
-          // Images
+          // // Images
           const causeImages = getFormDataField(cause, 'images') as File[];
 
           if (causeImages && Array.isArray(causeImages)) {
@@ -108,7 +105,7 @@ function MultiForm({
           const response = await createCampaign(formDataToSend).unwrap();
           console.log("Campaign created successfully:", response);
           toast.success(response.message || "Campaign created successfully!");
-          // router.push("/campaigns");
+          router.push("/campaigns");
         }
       } catch (error) {
         console.error("Error in form submission:", error);

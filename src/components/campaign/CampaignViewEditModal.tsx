@@ -162,13 +162,15 @@ function CampaignViewEditModal({
     newImages.forEach(file => {
       const reader = new FileReader();
       reader.onload = (event) => {
-        if (event.target?.result) {
-          setImagePreviews(prev => [...prev, event.target.result as string]);
+        const result = event.target?.result;
+        if (typeof result === "string") {
+          setImagePreviews(prev => [...prev, result]);
         }
       };
       reader.readAsDataURL(file);
     });
   };
+
 
   const removeImage = (index: number) => {
     if (index < imagePreviews.length) {
@@ -235,10 +237,9 @@ function CampaignViewEditModal({
     formDataToSend.append("data", JSON.stringify(campaignData));
 
     // Append all new images
-    selectedImages.forEach((image, index) => {
+    selectedImages.forEach((image) => {
       formDataToSend.append("images", image);
     });
-
     return { formData: formDataToSend, id: formData.id };
   };
 
