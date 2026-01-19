@@ -26,7 +26,6 @@ export interface CampaignData {
   startDate: string;
   endDate: string;
   seedDonationAmount: string;
-  // Additional fields for the modal
   causeTitle?: string;
   longDescription?: string;
   missionStatement?: string;
@@ -59,7 +58,9 @@ export interface CampaignData {
   organization_address?: string;
   description?: string;
   targetAmount?: number;
+  citiesServed?: string;
   campaignStatus?: string;
+  survivorsSupported?: string;
   yearsOfOperation?: number;
   organization_network?: string;
 }
@@ -72,6 +73,12 @@ interface CampaignViewEditModalProps {
   onSuccess?: () => void;
 }
 
+interface ImagePreview {
+  url: string;
+  isExisting: boolean;
+  originalPath?: string;
+}
+
 function CampaignViewEditModal({
   isOpen,
   onClose,
@@ -80,14 +87,16 @@ function CampaignViewEditModal({
   onSuccess,
 }: CampaignViewEditModalProps) {
   const [formData, setFormData] = useState<CampaignData | null>(null);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<ImagePreview[]>([]);
+  const [newImages, setNewImages] = useState<File[]>([]);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [updateCampaign] = useUpdateCampaignMutation();
 
+  // console.log("CampaignViewEditModal campaign prop:", campaign);
+
   useEffect(() => {
     if (campaign) {
-      // Transform API response to form data
       const transformedData: CampaignData = {
         id: campaign._id || campaign.id,
         organizationName: campaign.organization_name || "",
@@ -127,21 +136,26 @@ function CampaignViewEditModal({
         organization_network: campaign.organization_network || "",
         description: campaign.description || "",
         targetAmount: campaign.targetAmount || 0,
+        citiesServed: campaign.citiesServed || "",
+        survivorsSupported: campaign.survivorsSupported || "",
         yearsOfOperation: campaign.yearsOfOperation || 0,
         campaignStatus: campaign.campaignStatus || "draft",
       };
 
       setFormData(transformedData);
 
-      // Set image previews from existing images
-      if (campaign.images && campaign.images.length > 0) {
-        const previews = campaign.images.map(img => baseURL + img);
-        setImagePreviews(previews);
-      } else if (campaign.cause_image) {
-        setImagePreviews([baseURL + campaign.cause_image]);
-      } else {
-        setImagePreviews([]);
-      }
+      // Initialize existing images and previews
+      const campaignImages = campaign.images || [];
+      setExistingImages(campaignImages);
+
+      const previews: ImagePreview[] = campaignImages.map(img => ({
+        url: baseURL + img,
+        isExisting: true,
+        originalPath: img
+      }));
+
+      setImagePreviews(previews);
+      setNewImages([]);
     }
   }, [campaign, isOpen]);
 
@@ -155,50 +169,52 @@ function CampaignViewEditModal({
     const files = e.target.files;
     if (!files) return;
 
-    const newImages = Array.from(files);
-    setSelectedImages(prev => [...prev, ...newImages]);
+    const filesArray = Array.from(files);
+
+    // Add new files to newImages state
+    setNewImages(prev => [...prev, ...filesArray]);
 
     // Create previews for new images
-    newImages.forEach(file => {
+    filesArray.forEach(file => {
       const reader = new FileReader();
       reader.onload = (event) => {
         const result = event.target?.result;
         if (typeof result === "string") {
-          setImagePreviews(prev => [...prev, result]);
+          setImagePreviews(prev => [...prev, {
+            url: result,
+            isExisting: false
+          }]);
         }
       };
       reader.readAsDataURL(file);
     });
+
+    // Clear the input
+    e.target.value = '';
   };
 
-
   const removeImage = (index: number) => {
-    if (index < imagePreviews.length) {
-      // Check if it's a new image or existing image
-      const existingImagesCount = (formData?.images?.length || 0);
+    const imageToRemove = imagePreviews[index];
 
-      if (index < existingImagesCount) {
-        // This is an existing image, mark it for deletion
-        if (formData?.images) {
-          const updatedImages = [...formData.images];
-          updatedImages.splice(index, 1);
-          setFormData({ ...formData, images: updatedImages });
-        }
-      } else {
-        // This is a newly added image, remove from selectedImages
-        const newImageIndex = index - existingImagesCount;
-        setSelectedImages(prev => prev.filter((_, i) => i !== newImageIndex));
-      }
-
-      // Remove from previews
-      setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    if (imageToRemove.isExisting && imageToRemove.originalPath) {
+      // Remove from existing images array
+      setExistingImages(prev => prev.filter(img => img !== imageToRemove.originalPath));
+    } else {
+      // Remove from new images array
+      const newImageIndex = imagePreviews
+        .slice(0, index)
+        .filter(img => !img.isExisting)
+        .length;
+      setNewImages(prev => prev.filter((_, i) => i !== newImageIndex));
     }
+
+    // Remove from previews
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const prepareFormData = () => {
     if (!formData) return null;
 
-    // Extract numeric value from currency string
     const targetAmount = typeof formData.targetAmount === 'number'
       ? formData.targetAmount
       : parseFloat(formData.seedDonationAmount?.replace(/[^0-9.-]+/g, "") || "0");
@@ -227,19 +243,25 @@ function CampaignViewEditModal({
       internalTrackingId: formData.internalTrackingId,
       yearsOfOperation: formData.yearsOfOperation,
       campaignStatus: formData.campaignStatus,
-      // Send existing images that are not removed
-      images: formData.images || [],
+      citiesServed: formData.citiesServed,
+      survivorsSupported: formData.survivorsSupported,
+
+      // Send only the existing images that weren't removed
+      images: existingImages,
     };
 
-    console.log("Final campaign data:", campaignData);
+    console.log("Campaign data being sent:", campaignData);
+    console.log("Existing images:", existingImages);
+    console.log("New images count:", newImages.length);
 
     const formDataToSend = new FormData();
     formDataToSend.append("data", JSON.stringify(campaignData));
 
     // Append all new images
-    selectedImages.forEach((image) => {
+    newImages.forEach((image) => {
       formDataToSend.append("images", image);
     });
+
     return { formData: formDataToSend, id: formData.id };
   };
 
@@ -267,8 +289,8 @@ function CampaignViewEditModal({
     } catch (error: unknown) {
       const err = error as RTKError;
       toast.error(err?.data?.message || "Failed to update campaign. Please try again.");
-    }
-    finally {
+      console.error("Update error:", error);
+    } finally {
       setIsSaving(false);
     }
   };
@@ -329,7 +351,7 @@ function CampaignViewEditModal({
                         <div key={index} className="relative group">
                           <div className="relative w-full h-48 rounded-lg overflow-hidden border border-gray-300 bg-gray-100">
                             <Image
-                              src={preview}
+                              src={preview.url}
                               alt={`Campaign Image ${index + 1}`}
                               fill
                               className="object-cover"
@@ -345,6 +367,11 @@ function CampaignViewEditModal({
                               </button>
                             )}
                           </div>
+                          {!preview.isExisting && (
+                            <div className="absolute bottom-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+                              New
+                            </div>
+                          )}
                         </div>
                       ))}
                       {imagePreviews.length === 0 && (
@@ -364,7 +391,7 @@ function CampaignViewEditModal({
                           multiple
                         />
                         <p className="text-sm text-gray-500 mt-1">
-                          You can select multiple images
+                          You can select multiple images. Existing: {existingImages.length}, New: {newImages.length}
                         </p>
                       </div>
                     )}
@@ -426,22 +453,62 @@ function CampaignViewEditModal({
                       </p>
                     )}
                   </div>
+
                   <div>
                     <Label className="text-gray-700 font-medium">
-                      Mission Statement
+                      Cities Served
                     </Label>
                     {isEditMode ? (
                       <Textarea
-                        value={formData.missionStatement || ""}
+                        value={formData.citiesServed || ""}
                         onChange={(e) =>
-                          handleInputChange("missionStatement", e.target.value)
+                          handleInputChange("citiesServed", e.target.value)
                         }
                         className="mt-1 border-gray-300 min-h-[80px]"
                         disabled={isSaving}
                       />
                     ) : (
                       <p className="mt-1 text-gray-900 whitespace-pre-wrap">
-                        {formData.missionStatement}
+                        {formData.citiesServed}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <Label className="text-gray-700 font-medium">
+                      years Of Operation
+                    </Label>
+                    {isEditMode ? (
+                      <Textarea
+                        value={formData.yearsOfOperation || ""}
+                        onChange={(e) =>
+                          handleInputChange("yearsOfOperation", e.target.value)
+                        }
+                        className="mt-1 border-gray-300 min-h-[80px]"
+                        disabled={isSaving}
+                      />
+                    ) : (
+                      <p className="mt-1 text-gray-900 whitespace-pre-wrap">
+                        {formData.yearsOfOperation}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label className="text-gray-700 font-medium">
+                      Survivors Supported
+                    </Label>
+                    {isEditMode ? (
+                      <Textarea
+                        value={formData.survivorsSupported || ""}
+                        onChange={(e) =>
+                          handleInputChange("survivorsSupported", e.target.value)
+                        }
+                        className="mt-1 border-gray-300 min-h-[80px]"
+                        disabled={isSaving}
+                      />
+                    ) : (
+                      <p className="mt-1 text-gray-900 whitespace-pre-wrap">
+                        {formData.survivorsSupported}
                       </p>
                     )}
                   </div>
@@ -697,7 +764,6 @@ function CampaignViewEditModal({
                   Donation Routing
                 </h3>
                 <div className="space-y-4">
-
                   <div>
                     <Label className="text-gray-700 font-medium">
                       Payment URL:
@@ -788,7 +854,6 @@ function CampaignViewEditModal({
                       </p>
                     )}
                   </div>
-
                 </div>
               </div>
             </div>

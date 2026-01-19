@@ -402,10 +402,10 @@ function DonationTable() {
                   <TableCell className="font-medium">
                     {donation._id.slice(-6)}
                   </TableCell>
-                  <TableCell>{donation.campaignId._id.slice(-6)}</TableCell>
-                  <TableCell>{maskPhoneNumber(donation.donorPhone)}</TableCell>
-                  <TableCell>${donation.amountPaid.toFixed(2)}</TableCell>
-                  <TableCell>{formatDate(donation.createdAt)}</TableCell>
+                  <TableCell>{donation?.campaignId?._id?.slice(-6)}</TableCell>
+                  <TableCell>{maskPhoneNumber(donation?.donorPhone)}</TableCell>
+                  <TableCell>${donation?.amountPaid?.toFixed(2)}</TableCell>
+                  <TableCell>{formatDate(donation?.createdAt)}</TableCell>
                   <TableCell className="capitalize">
                     {formatPaymentMethod(donation.paymentMethod)}
                   </TableCell>

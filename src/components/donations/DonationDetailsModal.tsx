@@ -1,5 +1,5 @@
 "use client";
-import { Calendar, Send, X } from "lucide-react";
+import { Calendar, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import toast from 'react-hot-toast';
 import { useSendMessageMutation } from '../../features/donations/donationsApi';
@@ -35,14 +35,14 @@ interface DonationDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   donation: DonationData | null;
-  isLoading?: boolean; // Add this line
+  isLoading?: boolean;
 }
 
 function DonationDetailsModal({
   isOpen,
   onClose,
   donation,
-  isLoading = false // Add this with default value
+  isLoading = false
 }: DonationDetailsModalProps) {
   const [message, setMessage] = useState("");
   const [sendMessage, { isLoading: isSending }] = useSendMessageMutation();
@@ -60,6 +60,9 @@ function DonationDetailsModal({
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="overflow-y-auto max-h-[70vh]">
+          <DialogHeader>
+            <DialogTitle className="sr-only">Loading donation details</DialogTitle>
+          </DialogHeader>
           <div className="flex items-center justify-center h-40">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
@@ -120,20 +123,8 @@ function DonationDetailsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent
-        showCloseButton={false}
-        className="overflow-y-auto max-h-[70vh]"
-      >
-        {/* Custom Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 cursor-pointer z-10 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none bg-red-600 hover:bg-red-700 p-1"
-        >
-          <X className="h-4 w-4 text-white" />
-          <span className="sr-only">Close</span>
-        </button>
-
-        <DialogHeader className="text-left pb-4">
+      <DialogContent className="overflow-y-auto max-h-[70vh] p-0 sm:p-6">
+        <DialogHeader className="px-6 pt-6 sm:px-0 sm:pt-0 text-left pb-4">
           <DialogTitle className="text-2xl font-bold text-gray-900">
             Donation Details
           </DialogTitle>
@@ -143,7 +134,7 @@ function DonationDetailsModal({
         </DialogHeader>
 
         {/* Donation Information Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6 px-6 sm:px-0">
           {/* Left Column */}
           <div className="space-y-5">
             <div>
@@ -224,7 +215,7 @@ function DonationDetailsModal({
 
         {/* Additional Information */}
         {(donation.createdAt || donation.updatedAt) && (
-          <div className="border-t pt-6">
+          <div className="border-t pt-6 px-6 sm:px-0">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">Additional Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {donation.createdAt && (
@@ -249,7 +240,7 @@ function DonationDetailsModal({
 
         {/* Update Message Section - only for successful payments */}
         {isSuccessful && (
-          <div className="border-t pt-6">
+          <div className="border-t pt-6 px-6 sm:px-0">
             <label className="text-sm font-semibold text-gray-700 mb-2 block">
               Update Message
             </label>

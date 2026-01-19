@@ -31,16 +31,21 @@ import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useCreateDownlineMutation, useDeleteDownlineMutation, useGetDownlineQuery, useUpdateDownlineMutation } from '../../../features/downline/downlineApi';
 
-
 interface LevelContent {
   _id?: string;
-  level: string; // Changed from number to string to match API format (L1, L2, etc.)
+  level: string;
   title: string;
   description: string;
   benefits: string;
   targetInvitation: number;
   targetDonation: number;
   targetRaising: number;
+}
+
+interface ApiResponse {
+  success: boolean;
+  data: LevelContent[];
+  message?: string;
 }
 
 const DownlineContentTable = () => {
@@ -78,7 +83,8 @@ const DownlineContentTable = () => {
   // Load initial data from API
   useEffect(() => {
     if (apiData?.success && apiData?.data) {
-      const formattedContents = apiData.data.map((level: any) => ({
+      const responseData = apiData as ApiResponse;
+      const formattedContents = responseData.data.map((level: LevelContent) => ({
         _id: level._id,
         level: level.level,
         title: level.title || "",
@@ -221,7 +227,6 @@ const DownlineContentTable = () => {
 
   // Delete content
   const handleDelete = async (id: string) => {
-
     try {
       const response = await deleteDownlineMutation(id).unwrap();
       if (response.success) {
@@ -232,7 +237,6 @@ const DownlineContentTable = () => {
       console.error('Error deleting content:', error);
       // toast.error('Error deleting content');
     }
-
   };
 
   // Get level number from level string (L1 -> 1)

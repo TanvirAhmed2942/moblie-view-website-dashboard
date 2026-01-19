@@ -19,18 +19,16 @@ export interface AboutTheCauseFormData {
   cause_title: string;
   cause_description: string;
   cause_mission: string;
-  cities_served?: string;
+  cities_served?: number;
   yearsOfOperation?: number;
-  survivors_support?: string;
-  images?: File[]; // Changed to array of Files
-  imagePreviews?: string[]; // Changed to array of base64 strings
+  survivors_support?: number;
+  images?: File[];
+  imagePreviews?: string[];
 }
-
-
 
 const MAX_CHARACTERS = 280;
 const MIN_CASE_DESCRIPTION_CHARS = 10;
-const MAX_IMAGES = 10; // Maximum number of images allowed
+const MAX_IMAGES = 10;
 
 function AboutTheCauseForm({
   onNext,
@@ -41,9 +39,9 @@ function AboutTheCauseForm({
     cause_title: initialData?.cause_title || "",
     cause_description: initialData?.cause_description || "",
     cause_mission: initialData?.cause_mission || "",
-    cities_served: initialData?.cities_served || "",
-    yearsOfOperation: Number(initialData?.yearsOfOperation),
-    survivors_support: initialData?.survivors_support || "",
+    cities_served: initialData?.cities_served ? Number(initialData.cities_served) : undefined,
+    yearsOfOperation: initialData?.yearsOfOperation ? Number(initialData.yearsOfOperation) : undefined,
+    survivors_support: initialData?.survivors_support ? Number(initialData.survivors_support) : undefined,
     images: initialData?.images || [],
     imagePreviews: initialData?.imagePreviews || [],
   });
@@ -51,7 +49,7 @@ function AboutTheCauseForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleChange = (field: keyof AboutTheCauseFormData, value: any) => {
+  const handleChange = (field: keyof AboutTheCauseFormData, value: string | number | undefined) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
 
     // Clear error for this field when user types
@@ -61,6 +59,17 @@ function AboutTheCauseForm({
         delete newErrors[field];
         return newErrors;
       });
+    }
+  };
+
+  const handleInputChange = (field: keyof AboutTheCauseFormData, value: string) => {
+    if (field === 'cities_served' || field === 'yearsOfOperation' || field === 'survivors_support') {
+      const numValue = value === '' ? undefined : parseInt(value, 10);
+      if (numValue === undefined || !isNaN(numValue)) {
+        handleChange(field, numValue);
+      }
+    } else {
+      handleChange(field, value);
     }
   };
 
@@ -212,7 +221,7 @@ function AboutTheCauseForm({
     }
 
     // Validate cities served
-    if (!formData.cities_served?.trim()) {
+    if (!formData.cities_served) {
       newErrors.cities_served = 'Cities served is required';
     }
 
@@ -222,7 +231,7 @@ function AboutTheCauseForm({
     }
 
     // Validate survivors support
-    if (!formData.survivors_support?.trim()) {
+    if (!formData.survivors_support) {
       newErrors.survivors_support = 'Survivors support information is required';
     }
 
@@ -272,7 +281,7 @@ function AboutTheCauseForm({
               id="cause_title"
               type="text"
               value={formData.cause_title}
-              onChange={(e) => handleChange("cause_title", e.target.value)}
+              onChange={(e) => handleInputChange("cause_title", e.target.value)}
               placeholder="Enter your cause title here..."
               className={`bg-gray-50 border-gray-200 ${errors.cause_title ? 'border-red-500' : ''}`}
               required
@@ -289,8 +298,9 @@ function AboutTheCauseForm({
             </Label>
             <Input
               id="cities_served"
-              value={formData.cities_served}
-              onChange={(e) => handleChange("cities_served", e.target.value)}
+              type='number'
+              value={formData.cities_served || ''}
+              onChange={(e) => handleInputChange("cities_served", e.target.value)}
               placeholder="Enter cities served (comma separated)..."
               className={`bg-gray-50 border-gray-200 ${errors.cities_served ? 'border-red-500' : ''}`}
               required
@@ -310,8 +320,8 @@ function AboutTheCauseForm({
             <Input
               id="yearsOfOperation"
               type="number"
-              value={formData.yearsOfOperation}
-              onChange={(e) => handleChange("yearsOfOperation", e.target.value)}
+              value={formData.yearsOfOperation || ''}
+              onChange={(e) => handleInputChange("yearsOfOperation", e.target.value)}
               placeholder="Enter years of operation..."
               className={`bg-gray-50 border-gray-200 ${errors.yearsOfOperation ? 'border-red-500' : ''}`}
               required
@@ -328,8 +338,9 @@ function AboutTheCauseForm({
             </Label>
             <Input
               id="survivors_support"
-              value={formData.survivors_support}
-              onChange={(e) => handleChange("survivors_support", e.target.value)}
+              type='number'
+              value={formData.survivors_support || ''}
+              onChange={(e) => handleInputChange("survivors_support", e.target.value)}
               placeholder="Enter number or details of survivors supported..."
               className={`bg-gray-50 border-gray-200 ${errors.survivors_support ? 'border-red-500' : ''}`}
               required
@@ -353,7 +364,7 @@ function AboutTheCauseForm({
               onChange={(e) => {
                 const value = e.target.value;
                 if (value.length <= MAX_CHARACTERS) {
-                  handleChange("cause_description", value);
+                  handleInputChange("cause_description", value);
                 }
               }}
               placeholder="Type your case description here..."
@@ -396,7 +407,7 @@ function AboutTheCauseForm({
               onChange={(e) => {
                 const value = e.target.value;
                 if (value.length <= MAX_CHARACTERS) {
-                  handleChange("cause_mission", value);
+                  handleInputChange("cause_mission", value);
                 }
               }}
               placeholder="Type your mission statement here..."

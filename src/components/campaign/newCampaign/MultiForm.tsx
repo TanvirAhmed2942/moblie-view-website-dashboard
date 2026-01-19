@@ -64,6 +64,11 @@ function MultiForm({
           const settings = formData.settings;
           const routing = formData.routing;
 
+          console.log(getFormDataField(cause, 'survivors_support'))
+
+          console.log(getFormDataField(cause, 'survivors_support'))
+
+
           const campaignData = {
             organization_name: getFormDataField(org, 'organization_name'),
             organization_type: getFormDataField(org, 'organization_type'),
@@ -76,9 +81,9 @@ function MultiForm({
             cause_title: getFormDataField(cause, 'cause_title'),
             cause_description: getFormDataField(cause, 'cause_description'),
             cause_mission: getFormDataField(cause, 'cause_mission'),
-            cities_served: getFormDataField(cause, 'cities_served'),
-            yearsOfOperation: parseFloat(getFormDataField(cause, 'yearsOfOperation') as string),
-            survivors_support: getFormDataField(cause, 'survivors_support'),
+            citiesServed: Number(getFormDataField(cause, 'cities_served')),
+            yearsOfOperation: Number(getFormDataField(cause, 'yearsOfOperation')),
+            survivorsSupported: Number(getFormDataField(cause, 'survivors_support')),
             title: getFormDataField(settings, 'title'),
             description: getFormDataField(settings, 'description'),
             targetAmount: getFormDataField(settings, 'targetAmount') ? Number(getFormDataField(settings, 'targetAmount')) : 0,
