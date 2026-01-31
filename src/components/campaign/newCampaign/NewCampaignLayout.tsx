@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useState } from "react";
+import toast from 'react-hot-toast';
 import { useCreateCampaignMutation } from "../../../features/campaign/campaignApi";
 import MultiForm from "./MultiForm";
 import SideBarStep from "./SideBarStep";
@@ -84,31 +85,35 @@ function NewCampaignLayout() {
   }, []);
 
   // Handle Published button click (Step 5)
-  const handlePublish = useCallback(async () => {
+  const handlePublish = useCallback(async (routingData: DonationRoutingFormData) => {
+    // Merge latest routing data with existing form data
+    const finalFormData = { ...formData, routing: routingData };
+
     // Validate all required fields before submission
     const errors: Record<string, string> = {};
 
     // Check all required forms are filled
-    if (!formData.organization) errors.organization = "Organization information is required";
-    if (!formData.contact) errors.contact = "Contact person information is required";
-    if (!formData.cause) errors.cause = "About the Cause information is required";
-    if (!formData.settings) errors.settings = "Campaign settings are required";
-    if (!formData.routing) errors.routing = "Donation routing information is required";
+    if (!finalFormData.organization) errors.organization = "Organization information is required";
+    if (!finalFormData.contact) errors.contact = "Contact person information is required";
+    if (!finalFormData.cause) errors.cause = "About the Cause information is required";
+    if (!finalFormData.settings) errors.settings = "Campaign settings are required";
+    // routingData is required (passed from form)
+    if (!routingData || !routingData.payment_url) errors.routing = "Donation routing information is required";
 
     // Validate case description (from AboutTheCauseForm)
-    if (formData.cause && (!formData.cause.cause_description || formData.cause.cause_description.trim().length < 10)) {
+    if (finalFormData.cause && (!finalFormData.cause.cause_description || finalFormData.cause.cause_description.trim().length < 10)) {
       errors.cause_description = "Case description must be at least 10 characters";
     }
 
     // Validate campaign settings description
-    if (formData.settings && (!formData.settings.description || formData.settings.description.trim().length < 10)) {
+    if (finalFormData.settings && (!finalFormData.settings.description || finalFormData.settings.description.trim().length < 10)) {
       errors.description = "Description must be at least 10 characters";
     }
 
     // Validate target amount is numeric
-    if (formData.settings && formData.settings.targetAmount) {
-      const targetAmount = formData.settings.targetAmount;
-      if (isNaN(Number(targetAmount)) || targetAmount.trim() === "") {
+    if (finalFormData.settings && finalFormData.settings.targetAmount) {
+      const targetAmount = finalFormData.settings.targetAmount;
+      if (isNaN(Number(targetAmount)) || targetAmount.toString().trim() === "") {
         errors.targetAmount = "Target amount must be a valid number";
       }
     }
@@ -117,51 +122,54 @@ function NewCampaignLayout() {
 
     if (Object.keys(errors).length > 0) {
       console.error("Validation errors:", errors);
+      toast.error("Please fix validation errors before publishing details.");
       return;
     }
 
     try {
       const data = {
-        organization_name: formData.organization?.organization_name,
-        organization_type: formData.organization?.organization_type,
-        organization_website: formData.organization?.organization_website,
-        organization_address: formData.organization?.organization_address,
-        contactPerson_name: formData.contact?.contactPerson_name,
-        contactPerson_email: formData.contact?.contactPerson_email,
-        contactPerson_phone: formData.contact?.contactPerson_phone,
-        cause_title: formData.cause?.cause_title,
-        cause_description: formData.cause?.cause_description,
-        cause_mission: formData.cause?.cause_mission,
-        citiesServed: formData.cause?.cities_served,
-        yearsOfOperation: formData.cause?.yearsOfOperation,
-        survivorsSupported: formData.cause?.survivors_support,
-        title: formData.settings?.title,
-        description: formData.settings?.description,
-        targetAmount: formData.settings?.targetAmount ? Number(formData.settings.targetAmount) : 0,
-        startDate: formData.settings?.startDate,
-        endDate: formData.settings?.endDate,
-        internalTrackingId: formData.routing?.payment_url,
+        organization_name: finalFormData.organization?.organization_name,
+        organization_type: finalFormData.organization?.organization_type,
+        organization_website: finalFormData.organization?.organization_website,
+        organization_address: finalFormData.organization?.organization_address,
+        contactPerson_name: finalFormData.contact?.contactPerson_name,
+        contactPerson_email: finalFormData.contact?.contactPerson_email,
+        contactPerson_phone: finalFormData.contact?.contactPerson_phone,
+        cause_title: finalFormData.cause?.cause_title,
+        cause_description: finalFormData.cause?.cause_description,
+        cause_mission: finalFormData.cause?.cause_mission,
+        citiesServed: finalFormData.cause?.cities_served,
+        yearsOfOperation: finalFormData.cause?.yearsOfOperation,
+        survivorsSupported: finalFormData.cause?.survivors_support,
+        title: finalFormData.settings?.title,
+        description: finalFormData.settings?.description,
+        targetAmount: finalFormData.settings?.targetAmount ? Number(finalFormData.settings.targetAmount) : 0,
+        startDate: finalFormData.settings?.startDate,
+        endDate: finalFormData.settings?.endDate,
+        internalTrackingId: routingData.payment_url,
         campaignStatus: "active",
       };
 
       const makeCustomData = new FormData();
       makeCustomData.append("data", JSON.stringify(data));
 
-      //   // Append all images
-      if (formData.cause?.images && formData.cause.images.length > 0){
-        formData.cause.images.forEach((image) => {
+      // Append all images
+      if (finalFormData.cause?.images && finalFormData.cause.images.length > 0) {
+        finalFormData.cause.images.forEach((image) => {
           makeCustomData.append(`images`, image as File);
         });
       }
+      console.log("campaign data", data)
 
       const response = await createCampaign(makeCustomData).unwrap();
+
       console.log("Campaign created successfully:", response);
-      alert("Campaign published successfully!");
+      toast.success("Campaign published successfully!");
+      router.push("/campaigns");
     } catch (error) {
-      console.error("Error creating campaign:", error);
-      alert("Failed to publish campaign. Please try again.");
+      toast.error((error as any)?.data?.message || "Failed to publish campaign. Please try again.");
     }
-  }, [formData, createCampaign])
+  }, [formData, createCampaign, router]);
 
   // Map steps to form components
   const formSteps = [
