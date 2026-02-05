@@ -35,8 +35,8 @@ const DownlineContent = () => {
     { value: "level5", label: "Level 5", level: 5 },
   ];
 
-  const { data: apiData, refetch } = useGetContentQuery({});
-  const [DownlineContent, { isLoading }] = useCreateContentMutation();
+  const { data: apiData } = useGetContentQuery({});
+  const [handleCreateContent, { isLoading }] = useCreateContentMutation();
 
   // State for selected level
   const [selectedLevel, setSelectedLevel] = useState<string>("level1");
@@ -149,7 +149,7 @@ const DownlineContent = () => {
     console.log(currentContent);
 
     // try {
-    //   const response = await DownlineContent(data).unwrap();
+    //   const response = await handleCreateContent(data).unwrap();
     //   refetch();
     //   toast.success(response.message || 'Settings saved successfully');
 

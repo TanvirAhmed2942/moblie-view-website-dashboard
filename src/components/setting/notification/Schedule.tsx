@@ -1,5 +1,5 @@
 import { Save } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useGetCampaignQuery } from '../../../features/campaign/campaignApi';
 import { useCreateContentMutation, useGetContentQuery } from '../../../features/settings/settingsApi';
@@ -77,7 +77,7 @@ const Schedule = () => {
     isLoading: boolean;
     refetch: () => void;
   };
-  const campaigns = campaignsData?.data?.result || [];
+  const campaigns = useMemo(() => campaignsData?.data?.result || [], [campaignsData]);
 
   const [scheduleCampaign, { isLoading }] = useCreateContentMutation();
 

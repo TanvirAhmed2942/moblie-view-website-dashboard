@@ -167,7 +167,8 @@ function NewCampaignLayout() {
       toast.success("Campaign published successfully!");
       router.push("/campaigns");
     } catch (error) {
-      toast.error((error as any)?.data?.message || "Failed to publish campaign. Please try again.");
+      const apiError = error as { data?: { message?: string } };
+      toast.error(apiError?.data?.message || "Failed to publish campaign. Please try again.");
     }
   }, [formData, createCampaign, router]);
 

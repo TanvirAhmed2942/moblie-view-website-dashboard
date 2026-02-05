@@ -6,7 +6,7 @@ export const baseApi = createApi({
   reducerPath: "baseApi",
   baseQuery: fetchBaseQuery({
     baseUrl: `${baseURL}/api/v1`,
-    prepareHeaders: (headers, { endpoint, getState, extra, type, forced }) => {
+    prepareHeaders: (headers, { extra }) => {
       const token = getToken();
 
       if (token) {
