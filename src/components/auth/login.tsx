@@ -9,7 +9,7 @@ import { useGSAP } from "@gsap/react";
 import { gsap } from "gsap";
 import { Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from 'react-hot-toast';
@@ -20,6 +20,8 @@ import { loginFormType } from "./auth.types";
 
 export default function Login() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get('callbackUrl');
   const [showPassword, setShowPassword] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLDivElement>(null);
@@ -159,7 +161,8 @@ export default function Login() {
         );
 
         toast.success(result.message || "Login successful!");
-        router.push("/");
+        // Redirect to callbackUrl if it exists, otherwise to dashboard
+        router.replace(callbackUrl || "/");
       }
     } catch (error: unknown) {
       const err = error as RTKError;

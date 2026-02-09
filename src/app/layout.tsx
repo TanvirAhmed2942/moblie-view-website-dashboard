@@ -35,9 +35,9 @@ export default function RootLayout({
         className={`${geistSans.variable} antialiased h-screen`}
       >
         <ClientLayout>
+          <Toaster />
           <ProtectedRoute>
             {children}
-            <Toaster />
           </ProtectedRoute>
         </ClientLayout>
       </body>

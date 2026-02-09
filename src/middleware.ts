@@ -37,8 +37,10 @@ export function middleware(request: NextRequest) {
   if (!token && !isPublicPath) {
     // If accessing a protected route without token, redirect to login
     const loginUrl = new URL('/auth/login', request.url)
-    // Add the current path as a query param to redirect back after login
-    loginUrl.searchParams.set('callbackUrl', pathname)
+    // Only add callbackUrl if we're not on the root dashboard
+    if (pathname !== '/') {
+      loginUrl.searchParams.set('callbackUrl', pathname)
+    }
     return NextResponse.redirect(loginUrl)
   }
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { removeToken } from "@/utils/storage";
+import { useAppDispatch } from "@/redux/hooks";
+import { clearUser } from "@/redux/slices/authSlice";
 
 import {
   Sidebar,
@@ -69,6 +70,7 @@ export function AppSidebar() {
   );
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const router = useRouter();
+  const dispatch = useAppDispatch();
 
   const handleLogoutClick = () => {
     setIsLogoutModalOpen(true);
@@ -76,8 +78,9 @@ export function AppSidebar() {
 
   const handleLogoutConfirm = () => {
     setIsLogoutModalOpen(false);
-    removeToken();
-    router.push("/auth/login");
+    dispatch(clearUser());
+    // Use replace to avoid keeping the dashboard in history
+    router.replace("/auth/login");
   };
 
   const handleLogoutCancel = () => {
