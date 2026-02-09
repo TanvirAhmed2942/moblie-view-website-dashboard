@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAppDispatch } from "@/redux/hooks";
+import { setUser } from "@/redux/slices/authSlice";
 import { useGSAP } from "@gsap/react";
 import { gsap } from "gsap";
 import { Eye, EyeOff } from "lucide-react";
@@ -12,7 +14,6 @@ import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from 'react-hot-toast';
 import { useLoginMutation } from '../../features/auth/authApi';
-import { saveToken } from '../../utils/storage';
 import { RTKError } from '../../utils/type';
 import { Checkbox } from "../ui/checkbox";
 import { loginFormType } from "./auth.types";
@@ -138,6 +139,8 @@ export default function Login() {
     { scope: cardRef }
   );
 
+  const dispatch = useAppDispatch();
+
   const onSubmit = async (data: loginFormType) => {
     const email = data.email.trim();
     const password = data.password.trim();
@@ -146,18 +149,24 @@ export default function Login() {
       const result = await Login({ email, password }).unwrap();
       console.log("Login successful:", result);
       if (result.statusCode === 200) {
-        router.push("/");
+        // Dispatch setUser to update Redux state and storage
+        dispatch(
+          setUser({
+            user: result.data.user,
+            accessToken: result.data.accessToken,
+            refreshToken: result.data.refreshToken || "",
+          })
+        );
+
         toast.success(result.message || "Login successful!");
-        saveToken(result.data.accessToken);
+        router.push("/");
       }
     } catch (error: unknown) {
       const err = error as RTKError;
       toast.error(err?.data?.message || "Login failed. Please try again.");
     }
-
-
-
   };
+
 
   return (
     <Card

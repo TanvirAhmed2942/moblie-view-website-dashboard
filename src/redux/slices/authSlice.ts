@@ -1,10 +1,11 @@
+import { removeToken, saveToken } from "@/utils/storage";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface User {
   id: string;
   name: string;
   email: string;
-  role?: string; // Added optional role
+  role?: string;
 }
 
 interface AuthState {
@@ -36,14 +37,14 @@ const authSlice = createSlice({
       }>
     ) => {
       state.user = action.payload.user;
-
       state.isAuthenticated = true;
       state.accessToken = action.payload.accessToken;
       state.refreshToken = action.payload.refreshToken;
       state.isLoading = false;
 
-      // Store token and user data in localStorage
+      // Persist to storage
       if (typeof window !== "undefined") {
+        saveToken(action.payload.accessToken);
         localStorage.setItem("accessToken", action.payload.accessToken);
         localStorage.setItem("refreshToken", action.payload.refreshToken);
         localStorage.setItem("userData", JSON.stringify(action.payload.user));
@@ -56,8 +57,9 @@ const authSlice = createSlice({
       state.refreshToken = null;
       state.isLoading = false;
 
-      // Clear token and user data from localStorage
+      // Clear from storage
       if (typeof window !== "undefined") {
+        removeToken();
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         localStorage.removeItem("userData");
@@ -71,7 +73,6 @@ const authSlice = createSlice({
       state.isLoading = action.payload;
     },
     logoutFromOtherTab: (state) => {
-      // This action is triggered when logout happens in another tab
       state.user = null;
       state.accessToken = null;
       state.isAuthenticated = false;
@@ -79,42 +80,37 @@ const authSlice = createSlice({
       state.isLoading = false;
     },
     rehydrateAuth: (state) => {
-      console.log("rehydrateAuth - Starting rehydration...");
-      // Rehydrate authentication state from localStorage
       if (typeof window !== "undefined") {
-        const accessToken = localStorage.getItem("accessToken");
+        const accessToken = localStorage.getItem("accessToken") || localStorage.getItem("MobileViewAdmin");
         const refreshToken = localStorage.getItem("refreshToken");
         const userData = localStorage.getItem("userData");
-
-        console.log("rehydrateAuth - accessToken:", accessToken);
-        console.log("rehydrateAuth - userData:", userData);
 
         if (accessToken && userData) {
           try {
             const user = JSON.parse(userData);
-            console.log("rehydrateAuth - Parsed user:", user);
             state.user = user;
             state.accessToken = accessToken;
             state.refreshToken = refreshToken;
             state.isAuthenticated = true;
-            console.log("rehydrateAuth - Authentication restored successfully");
           } catch (error) {
-            console.log("rehydrateAuth - Error parsing user data:", error);
+            console.error("Error rehydrating auth state:", error);
             // Clear invalid data
             localStorage.removeItem("accessToken");
+            localStorage.removeItem("MobileViewAdmin");
             localStorage.removeItem("refreshToken");
             localStorage.removeItem("userData");
+            state.isAuthenticated = false;
           }
-        } else {
-          console.log(
-            "rehydrateAuth - No valid auth data found in localStorage"
-          );
+        } else if (accessToken && !userData) {
+          // Inconsistent state: token exists but no user data
+          // Clear it to be safe
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("MobileViewAdmin");
+          localStorage.removeItem("refreshToken");
+          state.isAuthenticated = false;
         }
       }
       state.isLoading = false;
-      console.log(
-        "rehydrateAuth - Rehydration complete, isLoading set to false"
-      );
     },
   },
 });
@@ -127,3 +123,4 @@ export const {
   logoutFromOtherTab,
 } = authSlice.actions;
 export default authSlice.reducer;
+

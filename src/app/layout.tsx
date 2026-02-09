@@ -1,3 +1,4 @@
+import ProtectedRoute from "@/components/ProtectedRoute";
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import { Toaster } from "react-hot-toast";
@@ -33,15 +34,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} antialiased h-screen`}
       >
-        {/* <AuthGuard> */}
-        {/* <ProtectedRoute> */}
         <ClientLayout>
-          {children}
-          <Toaster />
+          <ProtectedRoute>
+            {children}
+            <Toaster />
+          </ProtectedRoute>
         </ClientLayout>
-        {/* </ProtectedRoute> */}
-        {/* </AuthGuard> */}
       </body>
+
     </html>
   );
 }

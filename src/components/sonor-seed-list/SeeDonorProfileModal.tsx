@@ -436,9 +436,7 @@ function SeeDonorProfileModal({
                     <Phone className="h-5 w-5 text-purple-600" />
                     <div>
                       <p className="text-sm text-gray-500">Contact</p>
-                      <p className="text-base font-bold text-gray-900">
-                        {donor.contact}
-                      </p>
+                      <p className="text-base font-bold text-gray-900">{donor?.contact}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -620,17 +618,17 @@ function SeeDonorProfileModal({
                         ) : (
                           filteredInvitees.map((invitee: Invitation) => (
                             <TableRow
-                              key={invitee._id}
+                              key={invitee?._id}
                               className="bg-white hover:bg-gray-50"
                             >
                               <TableCell className="font-medium">
-                                {invitee.invitationForName}
+                                {invitee?.invitationForName}
                               </TableCell>
-                              <TableCell>{invitee.invitationForPhone}</TableCell>
-                              <TableCell>{invitee.campaignTitle || invitee.campaignId.title}</TableCell>
-                              <TableCell>{formatDate(invitee.createdAt)}</TableCell>
+                              <TableCell>{invitee?.invitationForPhone}</TableCell>
+                              <TableCell>{invitee?.campaignTitle || invitee?.campaignId?.title}</TableCell>
+                              <TableCell>{formatDate(invitee?.createdAt)}</TableCell>
                               <TableCell>
-                                {invitee.isDonated ? (
+                                {invitee?.isDonated ? (
                                   <Badge className="bg-green-100 text-green-700 border-green-200 hover:bg-green-100">
                                     Yes
                                   </Badge>

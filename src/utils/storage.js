@@ -1,11 +1,20 @@
 export const saveToken = (token) => {
-  localStorage.setItem("MobileViewAdmin", token);
+  if (typeof window !== "undefined") {
+    localStorage.setItem("MobileViewAdmin", token);
+    document.cookie = `MobileViewAdmin=${token}; path=/; max-age=86400; SameSite=Lax`;
+  }
 };
 
 export const getToken = () => {
-  return localStorage.getItem("MobileViewAdmin");
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("MobileViewAdmin");
+  }
+  return null;
 };
 
 export const removeToken = () => {
-  localStorage.removeItem("MobileViewAdmin");
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("MobileViewAdmin");
+    document.cookie = "MobileViewAdmin=; path=/; max-age=0";
+  }
 };

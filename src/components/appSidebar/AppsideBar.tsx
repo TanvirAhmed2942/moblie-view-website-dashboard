@@ -1,5 +1,7 @@
 "use client";
 
+import { removeToken } from "@/utils/storage";
+
 import {
   Sidebar,
   SidebarContent,
@@ -74,7 +76,7 @@ export function AppSidebar() {
 
   const handleLogoutConfirm = () => {
     setIsLogoutModalOpen(false);
-    localStorage.removeItem("MobileViewAdmin");
+    removeToken();
     router.push("/auth/login");
   };
 

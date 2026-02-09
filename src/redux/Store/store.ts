@@ -1,23 +1,26 @@
 import { configureStore } from "@reduxjs/toolkit";
-import { persistStore, persistReducer } from "redux-persist";
-import storage from "redux-persist/lib/storage";
 import { combineReducers } from "redux";
+import { persistReducer, persistStore } from "redux-persist";
+import storage from "redux-persist/lib/storage";
 
 // Import your slices here
-import authSlice from "../slices/authSlice";
+import { baseApi } from "@/utils/apiBaseQuery";
 import { api } from "../getBaseApi";
-import usersSlice from "../slices/usersSlice";
-import studySlice from "../slices/studySlice";
-import nextGenSlice from "../slices/nextGenSlice";
-import standAloneExamSlice from "../slices/standAloneExamSlice";
-import readinessExamSlice from "../slices/readinessExamSlice";
-import notificationSlice from "../slices/notificationSlice";
+import authSlice from "../slices/authSlice";
 import campaignFormSlice from "../slices/campaignFormSlice";
+import nextGenSlice from "../slices/nextGenSlice";
+import notificationSlice from "../slices/notificationSlice";
+import readinessExamSlice from "../slices/readinessExamSlice";
+import standAloneExamSlice from "../slices/standAloneExamSlice";
+import studySlice from "../slices/studySlice";
+import usersSlice from "../slices/usersSlice";
+
 // Root reducer
 const rootReducer = combineReducers({
   // Add your reducers here
   auth: authSlice,
   [api.reducerPath]: api.reducer,
+  [baseApi.reducerPath]: baseApi.reducer,
   users: usersSlice,
   study: studySlice,
   nextGen: nextGenSlice,
@@ -60,7 +63,7 @@ export const store = configureStore({
           "persist/FLUSH",
         ],
       },
-    }).concat(api.middleware),
+    }).concat(api.middleware, baseApi.middleware),
   devTools: process.env.NODE_ENV !== "production",
 });
 
