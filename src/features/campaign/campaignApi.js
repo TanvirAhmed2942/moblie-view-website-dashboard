@@ -29,6 +29,17 @@ export const overviewApi = baseApi.injectEndpoints({
     }),
 
 
+    duplicateCampaign: builder.mutation({
+      query: (id) => ({
+        url: `/campaign/duplicate-campaign/${id}`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['campaigns'],
+    }),
+
+
+
+
     updateCampaign: builder.mutation({
       query: ({ data, id }) => ({
         url: `/campaign/${id}`,
@@ -55,7 +66,7 @@ export const overviewApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['campaigns'],
     }),
-    
+
   }),
 
 });
@@ -67,5 +78,6 @@ export const {
   useCreateCampaignMutation,
   useUpdateCampaignMutation,
   useDeleteCampaignMutation,
-  useSetAlertCampaignMutation
+  useSetAlertCampaignMutation,
+  useDuplicateCampaignMutation,
 } = overviewApi;

@@ -1,9 +1,9 @@
 "use client";
-import { AlertCircle, Eye, Pencil, Search, Trash2 } from "lucide-react";
+import { AlertCircle, Copy, Eye, Pencil, Search, Trash2 } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from "react";
 import toast from 'react-hot-toast';
-import { useDeleteCampaignMutation, useGetCampaignQuery, useSingleGetCampaignQuery } from '../../features/campaign/campaignApi';
+import { useDeleteCampaignMutation, useDuplicateCampaignMutation, useGetCampaignQuery, useSingleGetCampaignQuery } from '../../features/campaign/campaignApi';
 import { CustomLoading } from '../../hooks/CustomLoading';
 import DeleteConfirmationDialog from "../confirmation/deleteConfirmationDialog";
 import { Button } from "../ui/button";
@@ -79,6 +79,8 @@ function CampaignListTable() {
   const { data: singleCampaignResponse } = useSingleGetCampaignQuery(campaignId || undefined, {
     skip: !campaignId,
   });
+
+  const [duplicateCampaign, { isLoading: isDuplicating }] = useDuplicateCampaignMutation();
 
 
   const [deleteCampaign] = useDeleteCampaignMutation();
@@ -209,6 +211,20 @@ function CampaignListTable() {
     setIsAlertModalOpen(true);
   };
 
+  const handleDuplicateClick = async (campaign: Campaign) => {
+    try {
+      const res = await duplicateCampaign(campaign._id).unwrap();
+      toast.success(res?.message || "Campaign duplicated successfully!");
+      refetch();
+    } catch (err: unknown) {
+      let msg = "Failed to duplicate campaign";
+      if (typeof err === "object" && err !== null && "data" in err) {
+        const e = err as { data?: { message?: string } };
+        msg = e.data?.message || msg;
+      }
+      toast.error(msg);
+    }
+  };
 
 
   // Pagination logic
@@ -391,6 +407,16 @@ function CampaignListTable() {
                         onClick={() => handleSetAlert(campaign)}
                       >
                         <AlertCircle className="h-4 w-4" />
+
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="bg-red-600 hover:bg-red-700 text-white border border-red-300 rounded-full"
+                        onClick={() => handleDuplicateClick(campaign)}
+                        disabled={isDuplicating}
+                      >
+                        <Copy className="h-4 w-4" />
 
                       </Button>
                     </div>
