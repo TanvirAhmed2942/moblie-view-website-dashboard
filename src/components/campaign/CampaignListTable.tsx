@@ -71,6 +71,14 @@ function CampaignListTable() {
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
   const [selectedCampaign2, setSelectedCampaign2] = useState<Campaign | null>(null);
+  const [pendingDuplicates, setPendingDuplicates] = useState<Array<{
+    baseTitle: string;
+    snapshotIds: Set<string>;
+  }>>([]);
+  const [lastInsertedList, setLastInsertedList] = useState<Array<{
+    id: string;
+    baseTitle: string;
+  }>>([]);
 
   // Fetch campaigns with search query
   const { data: campaignsResponse, isLoading, refetch } = useGetCampaignQuery(searchQuery || undefined);
@@ -119,6 +127,58 @@ function CampaignListTable() {
   const apiCampaigns = campaignsResponse?.data?.result || [];
   const transformedCampaigns = transformCampaigns(apiCampaigns);
 
+  const normalizeTitle = (t: string) => t.replace(/\s*\(Copy\)+$/i, "").trim();
+
+  useEffect(() => {
+    if (pendingDuplicates.length === 0 || transformedCampaigns.length === 0) return;
+
+    const remaining: typeof pendingDuplicates = [];
+    const found: Array<{ id: string; baseTitle: string }> = [];
+
+    for (const p of pendingDuplicates) {
+      const candidates = transformedCampaigns.filter(
+        (c) => normalizeTitle(c.title) === p.baseTitle && !p.snapshotIds.has(c._id)
+      );
+      if (candidates.length > 0) {
+        found.push({ id: candidates[0]._id, baseTitle: p.baseTitle });
+      } else {
+        remaining.push(p);
+      }
+    }
+
+    if (found.length > 0) {
+      setLastInsertedList((prev) => [...prev.filter(li => !found.some(f => f.id === li.id)), ...found]);
+    }
+    if (remaining.length !== pendingDuplicates.length) {
+      setPendingDuplicates(remaining);
+    }
+  }, [pendingDuplicates, transformedCampaigns]);
+
+  const orderedCampaigns = (() => {
+    if (lastInsertedList.length === 0) return transformedCampaigns;
+    const list = [...transformedCampaigns];
+
+    // Process each recently inserted id to reposition it correctly
+    for (const li of lastInsertedList) {
+      const idxNew = list.findIndex((c) => c._id === li.id);
+      if (idxNew === -1) continue;
+      const [newItem] = list.splice(idxNew, 1);
+
+      let lastIdx = -1;
+      for (let i = 0; i < list.length; i++) {
+        if (normalizeTitle(list[i].title) === li.baseTitle) lastIdx = i;
+      }
+      if (lastIdx === -1) {
+        // If somehow no other item with same base title exists, put it back where it was
+        list.splice(Math.min(idxNew, list.length), 0, newItem);
+      } else {
+        list.splice(lastIdx + 1, 0, newItem);
+      }
+    }
+
+    return list;
+  })();
+
   // Get meta data for pagination
   const meta = campaignsResponse?.data?.meta || {
     page: 1,
@@ -127,8 +187,7 @@ function CampaignListTable() {
     totalPage: 1
   };
 
-  // Filter campaigns based on status
-  const filteredCampaigns = transformedCampaigns.filter((campaign) => {
+  const filteredCampaigns = orderedCampaigns.filter((campaign) => {
     const matchesSearch =
       campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       campaign.organization_name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -147,6 +206,8 @@ function CampaignListTable() {
       maximumFractionDigits: 0,
     }).format(amount);
   };
+
+  const isCopyTitle = (title: string) => /\(Copy\)/i.test(title);
 
   // Handle delete click
   const handleDeleteClick = (campaign: Campaign) => {
@@ -213,6 +274,8 @@ function CampaignListTable() {
 
   const handleDuplicateClick = async (campaign: Campaign) => {
     try {
+      const snapshotIds = new Set((apiCampaigns as Array<{ _id: string }>).map((c) => c._id));
+      setPendingDuplicates((prev) => [...prev, { baseTitle: normalizeTitle(campaign.title), snapshotIds }]);
       const res = await duplicateCampaign(campaign._id).unwrap();
       toast.success(res?.message || "Campaign duplicated successfully!");
       refetch();
@@ -409,16 +472,17 @@ function CampaignListTable() {
                         <AlertCircle className="h-4 w-4" />
 
                       </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="bg-red-600 hover:bg-red-700 text-white border border-red-300 rounded-full"
-                        onClick={() => handleDuplicateClick(campaign)}
-                        disabled={isDuplicating}
-                      >
-                        <Copy className="h-4 w-4" />
-
-                      </Button>
+                      {!isCopyTitle(campaign.title) && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700 text-white border border-green-300 rounded-full"
+                          onClick={() => handleDuplicateClick(campaign)}
+                          disabled={isDuplicating}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
