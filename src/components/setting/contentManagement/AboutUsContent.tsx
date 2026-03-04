@@ -9,6 +9,7 @@ import { baseURL } from '../../../utils/BaseURL';
 interface ContentState {
   introduction: string;
   foundersQuote: string;
+  name: string;
   ourMission: string;
   howWeOperate: string;
 }
@@ -26,7 +27,7 @@ interface ApiResponseData {
   foundersQuote?: string;
   ourMission?: string;
   howWeOperate?: string;
-  founders?: Array<{ image?: string }>;
+  founders?: Array<{ image?: string; name?: string }>;
 }
 
 const AboutUsContent = () => {
@@ -34,6 +35,7 @@ const AboutUsContent = () => {
   const [content, setContent] = useState<ContentState>({
     introduction: '',
     foundersQuote: '',
+    name: '',
     ourMission: '',
     howWeOperate: '',
   });
@@ -60,6 +62,7 @@ const AboutUsContent = () => {
       setContent({
         introduction: apiData.introduction || '',
         foundersQuote: apiData.foundersQuote || '',
+        name: apiData.founders?.[0]?.name || '',
         ourMission: apiData.ourMission || '',
         howWeOperate: apiData.howWeOperate || '',
       });
@@ -133,6 +136,11 @@ const AboutUsContent = () => {
       foundersQuote: content.foundersQuote,
       ourMission: content.ourMission,
       howWeOperate: content.howWeOperate,
+      founders: [
+        {
+          name: content?.name
+        }
+      ]
     };
 
     data.append('data', JSON.stringify(contentData));
@@ -160,7 +168,7 @@ const AboutUsContent = () => {
         <h3 className="text-lg font-medium text-gray-900 mb-2">About Us Content</h3>
         <p className="text-sm text-gray-600 mb-6">Update the content for the &quot;About Us&quot; page on your website.</p>
 
-        <div className="grid grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-2 gap-6 mb-6">
           {/* Introduction */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -188,6 +196,20 @@ const AboutUsContent = () => {
               placeholder="We started this for people to make..."
               className="w-full px-4 py-3 bg-purple-50 border-0 rounded-lg h-24 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
               maxLength={200}
+            />
+          </div>
+
+          {/* Founder's Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Founder Name
+            </label>
+            <input
+              type="text"
+              value={content.name}
+              onChange={(e) => handleTextChange('name', e.target.value)}
+              placeholder="Enter founder name"
+              className="w-full px-4 py-3 bg-purple-50 border-0 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
             />
           </div>
 
