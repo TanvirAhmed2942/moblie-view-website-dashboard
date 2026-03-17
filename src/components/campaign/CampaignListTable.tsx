@@ -3,7 +3,7 @@ import { AlertCircle, Copy, Eye, Pencil, Search, Trash2 } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from "react";
 import toast from 'react-hot-toast';
-import { useDeleteCampaignMutation, useDuplicateCampaignMutation, useGetCampaignQuery, useSingleGetCampaignQuery } from '../../features/campaign/campaignApi';
+import { useDeleteCampaignMutation, useDuplicateCampaignMutation, useGetCampaignQuery } from '../../features/campaign/campaignApi';
 import { CustomLoading } from '../../hooks/CustomLoading';
 import DeleteConfirmationDialog from "../confirmation/deleteConfirmationDialog";
 import { Button } from "../ui/button";
@@ -66,27 +66,44 @@ function CampaignListTable() {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isViewEditModalOpen, setIsViewEditModalOpen] = useState(false);
+  // Stores the campaign row data that was clicked, used as immediate modal fallback
+  const [selectedModalCampaign, setSelectedModalCampaign] = useState<Campaign | null>(null);
 
   const [modalMode, setModalMode] = useState<"view" | "edit">("view");
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
   const [selectedCampaign2, setSelectedCampaign2] = useState<Campaign | null>(null);
-  const [pendingDuplicates, setPendingDuplicates] = useState<Array<{
-    baseTitle: string;
-    snapshotIds: Set<string>;
-  }>>([]);
-  const [lastInsertedList, setLastInsertedList] = useState<Array<{
-    id: string;
-    baseTitle: string;
-  }>>([]);
+  // orderedIds: tracks the desired display order after duplication.
+  // Each entry is an explicit campaign ID positioned by the user action.
+  const [orderedIds, setOrderedIds] = useState<string[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("campaign_ordered_ids");
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error("Failed to parse orderedIds from localStorage", e);
+        }
+      }
+    }
+    return [];
+  });
+
+  // Save orderedIds to localStorage whenever it changes
+  useEffect(() => {
+    if (orderedIds.length > 0) {
+      localStorage.setItem("campaign_ordered_ids", JSON.stringify(orderedIds));
+    }
+  }, [orderedIds]);
 
   // Fetch campaigns with search query
   const { data: campaignsResponse, isLoading, refetch } = useGetCampaignQuery(searchQuery || undefined);
 
-  // Fetch single campaign when ID is set
-  const { data: singleCampaignResponse } = useSingleGetCampaignQuery(campaignId || undefined, {
-    skip: !campaignId,
-  });
+  // Get campaigns from API response
+  const apiCampaigns: Campaign[] = campaignsResponse?.data?.result || [];
+
+  // Find the detailed campaign data from the list using the ID
+  const activeDetailedCampaign = apiCampaigns.find(c => c._id === campaignId) || selectedModalCampaign;
 
   const [duplicateCampaign, { isLoading: isDuplicating }] = useDuplicateCampaignMutation();
 
@@ -96,10 +113,10 @@ function CampaignListTable() {
   // const [updateCampaign] = useUpdateCampaignMutation();
 
 
-  // Convert API response to UI format
+  // Convert API response to UI format (preserving all fields for the modal fallback)
   const transformCampaigns = (apiCampaigns: Campaign[]) => {
     return apiCampaigns.map(campaign => ({
-      _id: campaign._id,
+      ...campaign,
       organization_name: campaign.organization_name || "N/A",
       title: campaign.title || "Untitled Campaign",
       organization_website: campaign.organization_website || "",
@@ -124,60 +141,38 @@ function CampaignListTable() {
   }, [searchQuery, refetch]);
 
   // Get campaigns from API response
-  const apiCampaigns = campaignsResponse?.data?.result || [];
+  // const apiCampaigns = campaignsResponse?.data?.result || [];
   const transformedCampaigns = transformCampaigns(apiCampaigns);
 
-  const normalizeTitle = (t: string) => t.replace(/\s*\(Copy\)+$/i, "").trim();
-
-  useEffect(() => {
-    if (pendingDuplicates.length === 0 || transformedCampaigns.length === 0) return;
-
-    const remaining: typeof pendingDuplicates = [];
-    const found: Array<{ id: string; baseTitle: string }> = [];
-
-    for (const p of pendingDuplicates) {
-      const candidates = transformedCampaigns.filter(
-        (c) => normalizeTitle(c.title) === p.baseTitle && !p.snapshotIds.has(c._id)
-      );
-      if (candidates.length > 0) {
-        found.push({ id: candidates[0]._id, baseTitle: p.baseTitle });
-      } else {
-        remaining.push(p);
-      }
-    }
-
-    if (found.length > 0) {
-      setLastInsertedList((prev) => [...prev.filter(li => !found.some(f => f.id === li.id)), ...found]);
-    }
-    if (remaining.length !== pendingDuplicates.length) {
-      setPendingDuplicates(remaining);
-    }
-  }, [pendingDuplicates, transformedCampaigns]);
-
+  // orderedCampaigns: if we have an explicit orderedIds list (set after a duplicate),
+  // reorder the transformed campaigns to match it. Any IDs not in orderedIds are
+  // appended at the end in their original API order.
   const orderedCampaigns = (() => {
-    if (lastInsertedList.length === 0) return transformedCampaigns;
-    const list = [...transformedCampaigns];
+    if (orderedIds.length === 0) return transformedCampaigns;
 
-    // Process each recently inserted id to reposition it correctly
-    for (const li of lastInsertedList) {
-      const idxNew = list.findIndex((c) => c._id === li.id);
-      if (idxNew === -1) continue;
-      const [newItem] = list.splice(idxNew, 1);
+    const idMap = new Map(transformedCampaigns.map((c) => [c._id, c]));
+    const ordered: typeof transformedCampaigns = [];
+    const seen = new Set<string>();
 
-      let lastIdx = -1;
-      for (let i = 0; i < list.length; i++) {
-        if (normalizeTitle(list[i].title) === li.baseTitle) lastIdx = i;
-      }
-      if (lastIdx === -1) {
-        // If somehow no other item with same base title exists, put it back where it was
-        list.splice(Math.min(idxNew, list.length), 0, newItem);
-      } else {
-        list.splice(lastIdx + 1, 0, newItem);
+    for (const id of orderedIds) {
+      const c = idMap.get(id);
+      if (c) {
+        ordered.push(c);
+        seen.add(id);
       }
     }
-
-    return list;
+    // Append any campaigns from the API that aren't in our ordered list
+    for (const c of transformedCampaigns) {
+      if (!seen.has(c._id)) {
+        ordered.push(c);
+      }
+    }
+    return ordered;
   })();
+
+  // Returns true if the campaign title contains "(Copy)" — used to hide the
+  // duplicate button on already-copied rows.
+  const isCopyTitle = (title: string) => /\(Copy\)/i.test(title);
 
   // Get meta data for pagination
   const meta = campaignsResponse?.data?.meta || {
@@ -206,8 +201,6 @@ function CampaignListTable() {
       maximumFractionDigits: 0,
     }).format(amount);
   };
-
-  const isCopyTitle = (title: string) => /\(Copy\)/i.test(title);
 
   // Handle delete click
   const handleDeleteClick = (campaign: Campaign) => {
@@ -238,8 +231,10 @@ function CampaignListTable() {
     setSelectedCampaign(null);
   };
 
-  // Handle view click
+  // Handle view click - store the row data immediately so the modal has something
+  // to display while the single-campaign API fetch is in flight.
   const handleViewClick = (campaign: Campaign) => {
+    setSelectedModalCampaign(campaign);
     setCampaignId(campaign._id);
     setModalMode("view");
     setIsViewEditModalOpen(true);
@@ -256,8 +251,10 @@ function CampaignListTable() {
     setSelectedCampaign(null);
   };
 
-  // Handle edit click
+  // Handle edit click - store the row data immediately so the modal has something
+  // to display while the single-campaign API fetch is in flight.
   const handleEditClick = (campaign: Campaign) => {
+    setSelectedModalCampaign(campaign);
     setCampaignId(campaign._id);
     setModalMode("edit");
     setIsViewEditModalOpen(true);
@@ -265,6 +262,8 @@ function CampaignListTable() {
 
   const handleCloseViewEditModal = () => {
     setIsViewEditModalOpen(false);
+    setSelectedModalCampaign(null);
+    setCampaignId(null);
   };
 
   const handleSetAlert = (campaign: Campaign) => {
@@ -274,11 +273,27 @@ function CampaignListTable() {
 
   const handleDuplicateClick = async (campaign: Campaign) => {
     try {
-      const snapshotIds = new Set((apiCampaigns as Array<{ _id: string }>).map((c) => c._id));
-      setPendingDuplicates((prev) => [...prev, { baseTitle: normalizeTitle(campaign.title), snapshotIds }]);
       const res = await duplicateCampaign(campaign._id).unwrap();
       toast.success(res?.message || "Campaign duplicated successfully!");
-      refetch();
+      // Build the new ordered list: insert the new copy ID right after the original.
+      // We get the new campaign id from the API response if available.
+      const newCampaignId: string | undefined = res?.data?._id || res?._id;
+      await refetch();
+      if (newCampaignId) {
+        setOrderedIds((prev) => {
+          // Start from the current display order
+          const currentIds = prev.length > 0
+            ? prev
+            : transformedCampaigns.map((c) => c._id);
+          const origIdx = currentIds.indexOf(campaign._id);
+          const next = [...currentIds];
+          // Insert new copy ID right after original (remove it first if somehow present)
+          const existingIdx = next.indexOf(newCampaignId);
+          if (existingIdx !== -1) next.splice(existingIdx, 1);
+          next.splice(origIdx === -1 ? next.length : origIdx + 1, 0, newCampaignId);
+          return next;
+        });
+      }
     } catch (err: unknown) {
       let msg = "Failed to duplicate campaign";
       if (typeof err === "object" && err !== null && "data" in err) {
@@ -574,15 +589,15 @@ function CampaignListTable() {
       />
 
       {/* View/Edit Campaign Modal */}
+      {/* Prefer the detailed single-campaign response; fall back to the
+          row data (selectedModalCampaign) so the modal is never blank. */}
       <CampaignViewEditModal
         isOpen={isViewEditModalOpen}
         onClose={handleCloseViewEditModal}
-        campaign={singleCampaignResponse?.data}
+        campaign={activeDetailedCampaign as Parameters<typeof CampaignViewEditModal>[0]['campaign']}
         mode={modalMode}
         onSuccess={() => {
-          // Refetch campaigns after successful update
           refetch();
-
         }}
       />
       <AlertModal
