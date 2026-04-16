@@ -2,7 +2,7 @@
 import Policy from "@/components/policies/Policy";
 import { useGetTermsAndConditionsQuery, useUpdateTermsAndConditionMutation } from "@/features/document/documentApi";
 import React from "react";
-import { toast } from "sonner";
+import { toast } from "react-hot-toast";
 
 function Page() {
   const { data, isLoading } = useGetTermsAndConditionsQuery(undefined);

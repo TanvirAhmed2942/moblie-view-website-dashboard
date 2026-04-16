@@ -129,7 +129,7 @@ function Policy({
           ) : (
             <div
               className="text-gray-500 prose prose-sm max-w-none h-[calc(100vh-200px)] overflow-y-auto"
-              dangerouslySetInnerHTML={{ __html: initialContent }}
+              dangerouslySetInnerHTML={{ __html: initialContent || "" }}
             />
           )}
         </CardContent>
