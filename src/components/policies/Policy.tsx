@@ -18,7 +18,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../ui/dialog";
-import TipTapEditor from "../../TipTapEditor/TipTapEditor";
+import dynamic from "next/dynamic";
+
+const TipTapEditor = dynamic(() => import("../../TipTapEditor/TipTapEditor"), {
+  ssr: false,
+});
 
 interface PolicyProps {
   policyType: "terms" | "privacy" | "cookies" | "refund" | "shipping";
