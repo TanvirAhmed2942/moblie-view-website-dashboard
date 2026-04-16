@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import AboutUsContent from '../../../components/setting/contentManagement/AboutUsContent';
 import DownlineContent from '../../../components/setting/contentManagement/DownlineContent';
-import PrivacyPolicyContent from '../../../components/setting/contentManagement/PrivacyPolicyContent';
 import Schedule from '../../../components/setting/notification/Schedule';
 import SystemNotifications from '../../../components/setting/notification/SystemNotifications';
 import UpdateSendingConfiguration from '../../../components/setting/notification/UpdateSendingConfiguration';

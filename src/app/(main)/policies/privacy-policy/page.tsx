@@ -19,8 +19,9 @@ function Page() {
       if (response.success) {
         toast.success(response.message || "Privacy Policy updated successfully");
       }
-    } catch (error: any) {
-      toast.error(error?.data?.message || "Failed to update Privacy Policy");
+    } catch (error: unknown) {
+      const err = error as { data?: { message?: string } };
+      toast.error(err?.data?.message || "Failed to update Privacy Policy");
     }
   };
 

@@ -36,7 +36,7 @@ const DownlineContent = () => {
   ];
 
   const { data: apiData } = useGetContentQuery({});
-  const [handleCreateContent, { isLoading }] = useCreateContentMutation();
+  const [, { isLoading }] = useCreateContentMutation();
 
   // State for selected level
   const [selectedLevel, setSelectedLevel] = useState<string>("level1");
