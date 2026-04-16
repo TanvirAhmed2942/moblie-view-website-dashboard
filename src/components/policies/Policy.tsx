@@ -128,7 +128,7 @@ function Policy({
             </div>
           ) : (
             <div
-              className="text-gray-500 prose prose-sm max-w-none"
+              className="text-gray-500 prose prose-sm max-w-none h-[calc(100vh-200px)] overflow-y-auto"
               dangerouslySetInnerHTML={{ __html: initialContent }}
             />
           )}
