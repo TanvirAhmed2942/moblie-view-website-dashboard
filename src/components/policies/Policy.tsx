@@ -123,7 +123,7 @@ function Policy({
 
         <CardContent>
           {isLoading ? (
-            <div className="flex justify-center items-center py-10">
+            <div className="flex justify-center items-center py-10 h-[calc(100vh-200px)] overflow-y-auto">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
           ) : (
