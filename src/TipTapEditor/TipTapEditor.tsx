@@ -379,7 +379,7 @@ const TipTapEditor = ({
                   onClick={() => editor?.chain().focus().toggleBold().run()}
                   className={`px-2 sm:px-4 py-1 sm:py-2 cursor-pointer rounded text-sm sm:text-base flex-shrink-0 ${
                     editor?.isActive("bold")
-                      ? "bg-blue-700 text-white"
+                      ? "bg-purple-600 text-white"
                       : "hover:bg-gray-200"
                   }`}
                 >
@@ -390,7 +390,7 @@ const TipTapEditor = ({
                   onClick={() => editor?.chain().focus().toggleItalic().run()}
                   className={`px-2 sm:px-[18px] py-1 sm:py-2 cursor-pointer rounded text-sm sm:text-base flex-shrink-0 ${
                     editor?.isActive("italic")
-                      ? "bg-blue-700 text-white"
+                      ? "bg-purple-600 text-white"
                       : "hover:bg-gray-200"
                   }`}
                 >
@@ -403,7 +403,7 @@ const TipTapEditor = ({
                   }
                   className={`px-2 sm:px-4 py-1 sm:py-2 cursor-pointer rounded text-sm sm:text-base flex-shrink-0 ${
                     editor?.isActive("underline")
-                      ? "bg-blue-700 text-white"
+                      ? "bg-purple-600 text-white"
                       : "hover:bg-gray-200"
                   }`}
                 >
@@ -416,7 +416,7 @@ const TipTapEditor = ({
                   }
                   className={`px-2 sm:px-3 py-1 sm:py-2 cursor-pointer rounded flex-shrink-0 ${
                     editor?.isActive("bulletList")
-                      ? "bg-blue-700 text-white"
+                      ? "bg-purple-600 text-white"
                       : "hover:bg-gray-200"
                   }`}
                 >
@@ -429,7 +429,7 @@ const TipTapEditor = ({
                   }
                   className={`px-2 sm:px-3 py-1 sm:py-2 cursor-pointer rounded flex-shrink-0 ${
                     editor?.isActive("orderedList")
-                      ? "bg-blue-700 text-white"
+                      ? "bg-purple-600 text-white"
                       : "hover:bg-gray-200"
                   }`}
                 >

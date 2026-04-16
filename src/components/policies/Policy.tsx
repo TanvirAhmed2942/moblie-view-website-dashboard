@@ -24,27 +24,41 @@ interface PolicyProps {
   policyType: "terms" | "privacy" | "cookies" | "refund" | "shipping";
   title?: string;
   initialContent?: string;
+  isLoading?: boolean;
+  onSave?: (content: string) => void;
+  isSaving?: boolean;
 }
 
 function Policy({
   policyType,
   title,
-  initialContent = "Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos.",
+  initialContent = "",
+  isLoading = false,
+  onSave,
+  isSaving = false,
 }: PolicyProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [policyContent, setPolicyContent] = useState(initialContent);
+
+  React.useEffect(() => {
+    if (initialContent) {
+      setPolicyContent(initialContent);
+    }
+  }, [initialContent]);
 
   const handleEditClick = () => {
     setIsDialogOpen(true);
   };
 
-  const handleSave = () => {
-    // Here you would typically save the content to your backend
-    console.log(`Saving ${policyType} policy:`, policyContent);
-    setIsDialogOpen(false);
+  const handleSave = async () => {
+    if (onSave) {
+      await onSave(policyContent);
+      setIsDialogOpen(false);
+    }
   };
 
   const handleCancel = () => {
+    setPolicyContent(initialContent);
     setIsDialogOpen(false);
   };
 
@@ -99,7 +113,7 @@ function Policy({
         <CardHeader className="text-2xl font-bold">
           <CardTitle>{displayTitle}</CardTitle>
           <CardAction>
-            <Button variant="outline" onClick={handleEditClick}>
+            <Button variant="outline" onClick={handleEditClick} disabled={isLoading}>
               <FiEdit3 size={15} />
             </Button>
           </CardAction>
@@ -108,10 +122,16 @@ function Policy({
         <Separator />
 
         <CardContent>
-          <div
-            className="text-gray-500 prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: policyContent }}
-          />
+          {isLoading ? (
+            <div className="flex justify-center items-center py-10">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : (
+            <div
+              className="text-gray-500 prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: initialContent }}
+            />
+          )}
         </CardContent>
       </Card>
 
@@ -129,8 +149,8 @@ function Policy({
           <div className="flex-1 border border-gray-200 rounded-lg overflow-hidden bg-white">
             <TipTapEditor
               handleJobDescription={handleContentChange}
-              handleMustHaveQualifications={() => {}}
-              handlePreferredQualifications={() => {}}
+              handleMustHaveQualifications={() => { }}
+              handlePreferredQualifications={() => { }}
               resetTrigger={false}
               description={policyContent}
               minHeight="400px"
@@ -142,12 +162,13 @@ function Policy({
             <Button
               variant="outline"
               onClick={handleCancel}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto bg-red-500 hover:bg-red-600 hover:text-white text-white"
+              disabled={isSaving}
             >
               Cancel
             </Button>
-            <Button onClick={handleSave} className="w-full sm:w-auto">
-              Save Changes
+            <Button onClick={handleSave} className="w-full sm:w-auto bg-purple-500 hover:bg-purple-600 text-white" disabled={isSaving}>
+              {isSaving ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>

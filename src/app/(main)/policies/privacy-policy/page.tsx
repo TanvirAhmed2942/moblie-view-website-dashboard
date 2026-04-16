@@ -1,15 +1,42 @@
+"use client"
 import Policy from "@/components/policies/Policy";
+import { useGetPrivacyPolicyQuery, useUpdatePrivacyPolicyMutation } from "@/features/document/documentApi";
 import React from "react";
+import { toast } from "sonner";
 
-function page() {
+function Page() {
+  const { data, isLoading } = useGetPrivacyPolicyQuery(undefined);
+  const [updatePrivacyPolicy, { isLoading: isUpdating }] = useUpdatePrivacyPolicyMutation();
+
+  const handleSave = async (content: string) => {
+    try {
+      const response = await updatePrivacyPolicy({
+        type: "privacy_policy",
+        title: "Privacy Policy",
+        content,
+      }).unwrap();
+      
+      if (response.success) {
+        toast.success(response.message || "Privacy Policy updated successfully");
+      }
+    } catch (error: any) {
+      toast.error(error?.data?.message || "Failed to update Privacy Policy");
+    }
+  };
+
+  const initialContent = data?.data?.[0]?.content || "";
+
   return (
     <>
       <Policy
         policyType="privacy"
-        initialContent="<p>This Privacy Policy describes how we collect, use, and protect your personal information...</p>"
+        initialContent={initialContent}
+        isLoading={isLoading}
+        onSave={handleSave}
+        isSaving={isUpdating}
       />
     </>
   );
 }
 
-export default page;
+export default Page;

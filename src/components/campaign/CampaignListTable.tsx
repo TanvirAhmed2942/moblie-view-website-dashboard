@@ -152,7 +152,7 @@ function CampaignListTable() {
 
     const idMap = new Map(transformedCampaigns.map((c) => [c._id, c]));
     const ordered: typeof transformedCampaigns = [];
-    const seen = new Set<string>();
+    const seen = new Set<string>(); 
 
     for (const id of orderedIds) {
       const c = idMap.get(id);

@@ -67,7 +67,7 @@ const Settings = () => {
             {/* Downline Content */}
             <DownlineContent />
             {/* Privacy Policy Content - UPDATED VERSION */}
-            <PrivacyPolicyContent />
+            {/* <PrivacyPolicyContent /> */}
           </div>
         )}
 

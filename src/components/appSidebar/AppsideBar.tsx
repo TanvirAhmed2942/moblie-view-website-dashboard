@@ -18,7 +18,7 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import provideIcon from "@/utils/provideIcon";
-import { ChevronRight, Settings } from "lucide-react";
+import { ChevronRight, FileText, Settings, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -59,7 +59,8 @@ const sidebars: SidebarItem[] = [
     path: "/downline",
     icon: MdCampaign,
   },
-
+  { name: "Privacy Policy", path: "/policies/privacy-policy", icon: ShieldCheck },
+  { name: "Terms & Conditions", path: "/policies/terms-&-conditions", icon: FileText },
   { name: "Settings", path: "/settings", icon: Settings },
 ];
 
