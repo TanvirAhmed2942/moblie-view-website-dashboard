@@ -25,7 +25,7 @@ function Page() {
     }
   };
 
-  const initialContent = data?.data?.[0]?.content || "";
+  const initialContent = data?.data?.content || "";
 
   return (
     <>

@@ -6,6 +6,7 @@ import { toast } from "react-hot-toast";
 
 function Page() {
   const { data, isLoading } = useGetPrivacyPolicyQuery(undefined);
+  console.log(data)
   const [updatePrivacyPolicy, { isLoading: isUpdating }] = useUpdatePrivacyPolicyMutation();
 
   const handleSave = async (content: string) => {
@@ -15,7 +16,7 @@ function Page() {
         title: "Privacy Policy",
         content,
       }).unwrap();
-      
+
       if (response.success) {
         toast.success(response.message || "Privacy Policy updated successfully");
       }
@@ -25,7 +26,7 @@ function Page() {
     }
   };
 
-  const initialContent = data?.data?.[0]?.content || "";
+  const initialContent = data?.data?.content || "";
 
   return (
     <>
