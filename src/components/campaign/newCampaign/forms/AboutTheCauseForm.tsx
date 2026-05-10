@@ -19,7 +19,7 @@ export interface AboutTheCauseFormData {
   cause_title: string;
   cause_description: string;
   cause_mission: string;
-  cities_served?: number;
+  cities_served?: string;
   yearsOfOperation?: number;
   survivors_support?: number;
   images?: File[];
@@ -39,7 +39,7 @@ function AboutTheCauseForm({
     cause_title: initialData?.cause_title || "",
     cause_description: initialData?.cause_description || "",
     cause_mission: initialData?.cause_mission || "",
-    cities_served: initialData?.cities_served ? Number(initialData.cities_served) : undefined,
+    cities_served: initialData?.cities_served || "",
     yearsOfOperation: initialData?.yearsOfOperation ? Number(initialData.yearsOfOperation) : undefined,
     survivors_support: initialData?.survivors_support ? Number(initialData.survivors_support) : undefined,
     images: initialData?.images || [],
@@ -63,7 +63,7 @@ function AboutTheCauseForm({
   };
 
   const handleInputChange = (field: keyof AboutTheCauseFormData, value: string) => {
-    if (field === 'cities_served' || field === 'yearsOfOperation' || field === 'survivors_support') {
+    if (field === 'yearsOfOperation' || field === 'survivors_support') {
       const numValue = value === '' ? undefined : parseInt(value, 10);
       if (numValue === undefined || !isNaN(numValue)) {
         handleChange(field, numValue);
@@ -221,7 +221,7 @@ function AboutTheCauseForm({
     }
 
     // Validate cities served
-    if (!formData.cities_served) {
+    if (!formData.cities_served || !formData.cities_served.trim()) {
       newErrors.cities_served = 'Cities served is required';
     }
 
@@ -298,10 +298,10 @@ function AboutTheCauseForm({
             </Label>
             <Input
               id="cities_served"
-              type='number'
+              type='text'
               value={formData.cities_served || ''}
               onChange={(e) => handleInputChange("cities_served", e.target.value)}
-              placeholder="Enter cities served (comma separated)..."
+              placeholder="Enter cities served"
               className={`bg-gray-50 border-gray-200 ${errors.cities_served ? 'border-red-500' : ''}`}
               required
             />
