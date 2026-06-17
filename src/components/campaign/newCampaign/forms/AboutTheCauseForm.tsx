@@ -572,5 +572,4 @@ function AboutTheCauseForm({
     </div>
   );
 }
-
 export default AboutTheCauseForm;
