@@ -45,18 +45,22 @@ export function Combobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn("w-[220px] justify-between font-normal", className)}
+          className={cn(
+            "w-[240px] justify-between font-normal border-purple-300 text-purple-700 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-500",
+            selected && "border-purple-500 bg-purple-50",
+            className
+          )}
         >
           <span className="truncate">{selected ? selected.label : placeholder}</span>
-          <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+          <ChevronsUpDown className="ml-2 size-4 shrink-0 text-purple-400" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[220px] p-2" align="end">
+      <PopoverContent className="w-[240px] p-2" align="end">
         <Input
           placeholder={searchPlaceholder}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="mb-2 h-8 text-sm"
+          className="mb-2 h-8 text-sm focus-visible:ring-purple-400 focus-visible:border-purple-400"
         />
         <div className="max-h-52 overflow-y-auto">
           {filtered.length === 0 ? (
@@ -70,10 +74,10 @@ export function Combobox({
                   setOpen(false)
                   setSearch("")
                 }}
-                className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+                className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-purple-50 hover:text-purple-700"
               >
                 <Check
-                  className={cn("size-4 shrink-0", value === opt.value ? "opacity-100" : "opacity-0")}
+                  className={cn("size-4 shrink-0 text-purple-600", value === opt.value ? "opacity-100" : "opacity-0")}
                 />
                 <span className="truncate">{opt.label}</span>
               </div>

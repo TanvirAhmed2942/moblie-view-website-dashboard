@@ -32,13 +32,16 @@ export default function Page() {
     <div className="w-full">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold">Downline</h1>
-        <Combobox
-          options={campaignOptions}
-          value={campaignId}
-          onChange={setCampaignId}
-          placeholder="Select Campaign"
-          searchPlaceholder="Search campaign..."
-        />
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-purple-700">Campaign :</span>
+          <Combobox
+            options={campaignOptions}
+            value={campaignId}
+            onChange={setCampaignId}
+            placeholder="Select a campaign"
+            searchPlaceholder="Search campaign..."
+          />
+        </div>
       </div>
 
       <DownlineTree data={downlineData?.data ?? []} />
