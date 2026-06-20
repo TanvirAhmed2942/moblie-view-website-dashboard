@@ -40,13 +40,13 @@ type SidebarItem = {
 const sidebars: SidebarItem[] = [
   { name: "Dashboard", path: "/", icon: RiDashboardHorizontalFill },
   {
-    name: "Donor  & Invitees",
-    path: "/donor-invitees",
+    name: "All Donor",
+    path: "/donor",
     icon: HiMiniUsers,
   },
   {
-    name: "Donations",
-    path: "/donations",
+    name: "Invests People",
+    path: "/invests",
     icon: GiPayMoney,
   },
   {
@@ -70,6 +70,7 @@ export function AppSidebar() {
     {}
   );
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
   const dispatch = useAppDispatch();
 
@@ -78,10 +79,11 @@ export function AppSidebar() {
   };
 
   const handleLogoutConfirm = () => {
-    setIsLogoutModalOpen(false);
-    dispatch(clearUser());
-    // Use replace to avoid keeping the dashboard in history
-    router.replace("/auth/login");
+    setIsLoggingOut(true);
+    setTimeout(() => {
+      dispatch(clearUser());
+      router.replace("/auth/login");
+    }, 800);
   };
 
   const handleLogoutCancel = () => {
@@ -201,6 +203,7 @@ export function AppSidebar() {
         isOpen={isLogoutModalOpen}
         onClose={handleLogoutCancel}
         onConfirm={handleLogoutConfirm}
+        isLoading={isLoggingOut}
       />
     </Sidebar>
   );

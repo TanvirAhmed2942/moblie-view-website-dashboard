@@ -5,6 +5,7 @@ import { Combobox } from "@/components/ui/combobox"
 import { DownlineTree } from "@/components/downline/DownlineTree"
 import { useGetCampaignQuery } from "@/features/campaign/campaignApi"
 import { useGetDownlineQuery } from "@/features/downline/downlineApi"
+import { CustomLoading } from "@/hooks/CustomLoading"
 
 export default function Page() {
   const [campaignId, setCampaignId] = useState("")
@@ -18,7 +19,7 @@ export default function Page() {
     }
   }, [campaignData])
 
-  const { data: downlineData } = useGetDownlineQuery(campaignId, {
+  const { data: downlineData, isLoading } = useGetDownlineQuery(campaignId, {
     skip: !campaignId,
   })
 
@@ -44,7 +45,13 @@ export default function Page() {
         </div>
       </div>
 
-      <DownlineTree data={downlineData?.data ?? []} />
+      {isLoading ? (
+        <div className="flex h-[400px] items-center justify-center">
+          <CustomLoading />
+        </div>
+      ) : (
+        <DownlineTree data={downlineData?.data ?? []} />
+      )}
     </div>
   )
 }

@@ -26,6 +26,6 @@ export const baseApi = createApi({
       return headers;
     },
   }),
-  tagTypes: ["donors", "campaigns", "downline", "Document"],
+  tagTypes: ["donors", "campaigns", "downline", "Document", "invests"],
   endpoints: () => ({}),
 });

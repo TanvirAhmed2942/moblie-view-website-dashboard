@@ -13,24 +13,21 @@ import { useGetCampaignQuery } from '../../features/campaign/campaignApi';
 
 interface Campaign {
   _id: string;
-  title: string;
+  campaign_title: string;
   overall_raised: number;
-  targetAmount: number;
-  startDate: string;
-  campaignStatus: string;
+  target_amount: number;
+  start_date: string;
+  end_date: string;
+  campaign_status: string;
   total_invitees: number;
-  // Additional fields from API that might be useful
-  endDate: string;
   createdAt: string;
-  // You might need to add donor count if available in your API
-  // donorsCount: number;
 }
 
 // Helper function to determine status based on dates
 const getCampaignStatus = (campaign: Campaign): "Active" | "Upcoming" | "Completed" => {
   const now = new Date();
-  const startDate = new Date(campaign.startDate);
-  const endDate = new Date(campaign.endDate);
+  const startDate = new Date(campaign.start_date);
+  const endDate = new Date(campaign.end_date);
 
   if (now < startDate) {
     return "Upcoming";
@@ -185,22 +182,22 @@ function ExistingCampaignTable() {
               return (
                 <TableRow key={campaign._id} className="bg-white hover:bg-gray-50">
                   <TableCell className="font-medium">
-                    {campaign.title}
+                    {campaign.campaign_title || "—"}
                   </TableCell>
                   <TableCell>
-                    {/* Using total_invitees as donors count - adjust if you have actual donor count */}
                     {campaign.total_invitees || 0}
                   </TableCell>
                   <TableCell>
-                    {/* This could be average donation amount - adjust based on your data */}
                     {formatCurrency(campaign.overall_raised > 0 && campaign.total_invitees > 0
                       ? campaign.overall_raised / campaign.total_invitees
                       : 0)}
                   </TableCell>
-                  <TableCell>{formatDate(campaign.startDate)}</TableCell>
+                  <TableCell>
+                    {campaign.start_date ? formatDate(campaign.start_date) : "—"}
+                  </TableCell>
                   <TableCell>{getStatusBadge(status)}</TableCell>
-                  <TableCell>{formatCurrency(campaign.overall_raised)}</TableCell>
-                  <TableCell>{formatCurrency(campaign.targetAmount)}</TableCell>
+                  <TableCell>{formatCurrency(campaign.overall_raised || 0)}</TableCell>
+                  <TableCell>{formatCurrency(campaign.target_amount || 0)}</TableCell>
                 </TableRow>
               );
             })}

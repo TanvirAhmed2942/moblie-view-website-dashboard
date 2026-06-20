@@ -274,6 +274,7 @@ export default function Login() {
               </Label>
             </div>
             <Button
+              type="button"
               variant="link"
               className="px-0 text-sm text-red-500 hover:text-red-600 cursor-pointer underline"
               onClick={() => router.push("/auth/forgot-password")}

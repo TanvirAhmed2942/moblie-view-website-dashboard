@@ -2,18 +2,18 @@
 
 import { Combobox } from "@/components/ui/combobox";
 import { useGetCampaignQuery } from "@/features/campaign/campaignApi";
-import { useGetDonorQuery } from "@/features/donor/donorApi";
+import { useGetInvestQuery } from "@/features/invests/investsApi";
 import { CustomLoading } from "@/hooks/CustomLoading";
 import { Eye, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "../ui/dialog";
+import { Input } from "../ui/input";
 import {
   Table,
   TableBody,
@@ -25,7 +25,7 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface DonorRecord {
+interface InvestRecord {
   _id: string;
   userId: {
     _id: string;
@@ -35,13 +35,13 @@ interface DonorRecord {
   };
   campaignId: { _id: string };
   phone: string;
-  parentPhone: string;
-  amount: number;
+  invitationUserPhone: string;
+  invitationUserName: string;
   createdAt?: string;
   updatedAt?: string;
 }
 
-interface DonorMeta {
+interface Meta {
   page: number;
   limit: number;
   total: number;
@@ -59,50 +59,47 @@ function formatDate(dateString?: string) {
   });
 }
 
-function fmt(n: number) {
-  return `$${n.toLocaleString()}`;
-}
-
 // ─── Detail Modal ─────────────────────────────────────────────────────────────
 
-function DonorDetailModal({
-  donor,
+function InvestDetailModal({
+  record,
   onClose,
 }: {
-  donor: DonorRecord | null;
+  record: InvestRecord | null;
   onClose: () => void;
 }) {
   return (
-    <Dialog open={!!donor} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={!!record} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle className="text-purple-700">Donor Details</DialogTitle>
+          <DialogTitle className="text-purple-700">Invitation Details</DialogTitle>
         </DialogHeader>
 
-        {donor && (
+        {record && (
           <div className="space-y-4 pt-2">
-            {/* Avatar + name */}
+            {/* Inviter avatar */}
             <div className="flex items-center gap-4">
               <div className="flex size-14 items-center justify-center rounded-full bg-purple-600 text-xl font-bold text-white">
-                {donor.userId.name.charAt(0).toUpperCase()}
+                {record.userId.name.charAt(0).toUpperCase()}
               </div>
               <div>
                 <p className="text-base font-semibold capitalize text-gray-900">
-                  {donor.userId.name}
+                  {record.userId.name}
                 </p>
-                <p className="text-sm text-muted-foreground">
-                  {donor.userId.contact}
-                </p>
+                <p className="text-sm text-muted-foreground">{record.userId.contact}</p>
               </div>
             </div>
 
-            <div className="rounded-lg border divide-y text-sm">
-              <Row label="Donor ID" value={`#${donor._id.slice(-6).toUpperCase()}`} />
-              <Row label="Phone" value={donor.phone} />
-              <Row label="Parent Phone" value={donor.parentPhone} />
-              <Row label="Amount" value={fmt(donor.amount)} highlight />
-              <Row label="Campaign ID" value={`#${donor.campaignId._id.slice(-6).toUpperCase()}`} />
-              <Row label="Donated At" value={formatDate(donor.createdAt)} />
+            <div className="divide-y rounded-lg border text-sm">
+              <Row label="Record ID" value={`#${record._id.slice(-6).toUpperCase()}`} />
+              <Row label="Inviter Phone" value={record.phone} />
+              <Row label="Invited Name" value={record.invitationUserName} highlight />
+              <Row label="Invited Phone" value={record.invitationUserPhone} />
+              <Row
+                label="Campaign ID"
+                value={`#${record.campaignId._id.slice(-6).toUpperCase()}`}
+              />
+              <Row label="Invited At" value={formatDate(record.createdAt)} />
             </div>
           </div>
         )}
@@ -125,9 +122,7 @@ function Row({
       <span className="text-muted-foreground">{label}</span>
       <span
         className={
-          highlight
-            ? "font-semibold text-purple-600"
-            : "font-medium text-gray-800"
+          highlight ? "font-semibold text-purple-600" : "font-medium text-gray-800"
         }
       >
         {value}
@@ -138,13 +133,13 @@ function Row({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-function SeedDonorListTable() {
+export default function InvestsTable() {
   const [campaignId, setCampaignId] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
-  const [viewDonor, setViewDonor] = useState<DonorRecord | null>(null);
+  const [viewRecord, setViewRecord] = useState<InvestRecord | null>(null);
 
-  // Campaign dropdown
+  // Campaign dropdown — auto-select first
   const { data: campaignData } = useGetCampaignQuery(undefined);
   useEffect(() => {
     const first = campaignData?.data?.result?.[0];
@@ -159,19 +154,19 @@ function SeedDonorListTable() {
       })
     ) ?? [];
 
-  // Donors query
+  // Invests query — response: { data: { meta, result } }
   const {
-    data: donorsData,
+    data: investsData,
     isLoading,
     isError,
     refetch,
-  } = useGetDonorQuery(
+  } = useGetInvestQuery(
     { page: currentPage, campaignId },
     { skip: !campaignId }
   );
 
-  const result: DonorRecord[] = donorsData?.result ?? [];
-  const meta: DonorMeta = donorsData?.meta ?? {
+  const result: InvestRecord[] = investsData?.data?.result ?? [];
+  const meta: Meta = investsData?.data?.meta ?? {
     page: 1,
     limit: 10,
     total: 0,
@@ -179,12 +174,13 @@ function SeedDonorListTable() {
   };
 
   // Client-side search
-  const filtered = result.filter((d) => {
+  const filtered = result.filter((r) => {
     const q = searchQuery.toLowerCase();
     return (
-      d.userId.name.toLowerCase().includes(q) ||
-      d.phone.includes(q) ||
-      d.parentPhone.includes(q)
+      r.userId.name.toLowerCase().includes(q) ||
+      r.invitationUserName.toLowerCase().includes(q) ||
+      r.phone.includes(q) ||
+      r.invitationUserPhone.includes(q)
     );
   });
 
@@ -192,7 +188,7 @@ function SeedDonorListTable() {
   const showingStart = filtered.length > 0 ? (currentPage - 1) * meta.limit + 1 : 0;
   const showingEnd = Math.min(currentPage * meta.limit, meta.total);
 
-  // Reset to page 1 when campaign changes
+  // Reset page when campaign changes
   useEffect(() => {
     setCurrentPage(1);
   }, [campaignId]);
@@ -242,7 +238,7 @@ function SeedDonorListTable() {
     if (endPage < totalPages - 1)
       buttons.push(<span key="e2" className="px-2 text-gray-700">...</span>);
 
-    if (totalPages > 1) {
+    if (totalPages > 1)
       buttons.push(
         <Button
           key={totalPages}
@@ -253,7 +249,6 @@ function SeedDonorListTable() {
           {totalPages}
         </Button>
       );
-    }
 
     return buttons;
   }
@@ -270,7 +265,7 @@ function SeedDonorListTable() {
   if (isError)
     return (
       <div className="py-8 text-center">
-        <p className="text-red-600">Failed to load donors</p>
+        <p className="text-red-600">Failed to load data</p>
         <Button onClick={() => refetch()} className="mt-4">
           Retry
         </Button>
@@ -281,7 +276,7 @@ function SeedDonorListTable() {
     <div className="space-y-4 rounded bg-white/80 p-3">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Donor List</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Invitation History</h1>
         <div className="flex items-center gap-3">
           {/* Search */}
           <div className="relative">
@@ -314,11 +309,11 @@ function SeedDonorListTable() {
           <TableHeader>
             <TableRow className="bg-purple-50 hover:bg-purple-50">
               <TableHead className="font-semibold text-gray-700">#</TableHead>
-              <TableHead className="font-semibold text-gray-700">Donor Name</TableHead>
-              <TableHead className="font-semibold text-gray-700">Phone</TableHead>
-              <TableHead className="font-semibold text-gray-700">Parent Phone</TableHead>
-              <TableHead className="font-semibold text-gray-700">Amount</TableHead>
-              <TableHead className="font-semibold text-gray-700">Donated At</TableHead>
+              <TableHead className="font-semibold text-gray-700">Inviter Name</TableHead>
+              <TableHead className="font-semibold text-gray-700">Inviter Phone</TableHead>
+              <TableHead className="font-semibold text-gray-700">Invited Name</TableHead>
+              <TableHead className="font-semibold text-gray-700">Invited Phone</TableHead>
+              <TableHead className="font-semibold text-gray-700">Date</TableHead>
               <TableHead className="font-semibold text-gray-700">Action</TableHead>
             </TableRow>
           </TableHeader>
@@ -326,32 +321,32 @@ function SeedDonorListTable() {
             {filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="py-8 text-center text-gray-500">
-                  {!campaignId
-                    ? "Select a campaign to see donors"
-                    : "No donors found"}
+                  {!campaignId ? "Select a campaign to see data" : "No records found"}
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((donor, idx) => (
-                <TableRow key={donor._id} className="bg-white hover:bg-gray-50">
-                  <TableCell className="text-muted-foreground text-sm">
+              filtered.map((record, idx) => (
+                <TableRow key={record._id} className="bg-white hover:bg-gray-50">
+                  <TableCell className="text-sm text-muted-foreground">
                     {(currentPage - 1) * meta.limit + idx + 1}
                   </TableCell>
                   <TableCell className="font-medium capitalize">
-                    {donor.userId.name}
+                    {record.userId.name}
                   </TableCell>
-                  <TableCell>{donor.phone}</TableCell>
-                  <TableCell className="text-muted-foreground">{donor.parentPhone}</TableCell>
-                  <TableCell className="font-semibold text-purple-600">
-                    {fmt(donor.amount)}
+                  <TableCell>{record.phone}</TableCell>
+                  <TableCell className="font-medium capitalize">
+                    {record.invitationUserName}
                   </TableCell>
-                  <TableCell>{formatDate(donor.createdAt)}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {record.invitationUserPhone}
+                  </TableCell>
+                  <TableCell>{formatDate(record.createdAt)}</TableCell>
                   <TableCell>
                     <Button
                       size="icon"
                       variant="ghost"
                       className="size-8 text-purple-600 hover:bg-purple-50 hover:text-purple-700"
-                      onClick={() => setViewDonor(donor)}
+                      onClick={() => setViewRecord(record)}
                     >
                       <Eye className="size-4" />
                     </Button>
@@ -367,7 +362,7 @@ function SeedDonorListTable() {
       {meta.total > 0 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600">
-            Showing {showingStart} to {showingEnd} of {meta.total} donors
+            Showing {showingStart} to {showingEnd} of {meta.total} records
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -380,7 +375,6 @@ function SeedDonorListTable() {
             </Button>
             <div className="flex items-center gap-2">{renderPageButtons()}</div>
             <Button
-              variant="default"
               disabled={currentPage === totalPages}
               onClick={() => setCurrentPage((p) => p + 1)}
               className="rounded-lg bg-purple-600 px-4 py-2 text-white hover:bg-purple-700 disabled:opacity-50"
@@ -392,9 +386,7 @@ function SeedDonorListTable() {
       )}
 
       {/* Detail Modal */}
-      <DonorDetailModal donor={viewDonor} onClose={() => setViewDonor(null)} />
+      <InvestDetailModal record={viewRecord} onClose={() => setViewRecord(null)} />
     </div>
   );
 }
-
-export default SeedDonorListTable;

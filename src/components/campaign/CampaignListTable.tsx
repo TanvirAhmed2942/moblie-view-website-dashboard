@@ -32,12 +32,17 @@ import CampaignViewEditModal from "./CampaignViewEditModal";
 interface Campaign {
   _id: string;
   organization_name: string;
-  title: string;
+  campaign_title: string;
+  title?: string;
   organization_website: string;
-  startDate: string;
-  endDate: string;
-  targetAmount: number;
-  campaignStatus: string;
+  start_date: string;
+  end_date: string;
+  startDate?: string;
+  endDate?: string;
+  target_amount: number;
+  targetAmount?: number;
+  campaign_status: string;
+  campaignStatus?: string;
   overall_raised?: number;
   description?: string;
   address?: string;
@@ -73,28 +78,6 @@ function CampaignListTable() {
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
   const [selectedCampaign2, setSelectedCampaign2] = useState<Campaign | null>(null);
-  // orderedIds: tracks the desired display order after duplication.
-  // Each entry is an explicit campaign ID positioned by the user action.
-  const [orderedIds, setOrderedIds] = useState<string[]>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("campaign_ordered_ids");
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch (e) {
-          console.error("Failed to parse orderedIds from localStorage", e);
-        }
-      }
-    }
-    return [];
-  });
-
-  // Save orderedIds to localStorage whenever it changes
-  useEffect(() => {
-    if (orderedIds.length > 0) {
-      localStorage.setItem("campaign_ordered_ids", JSON.stringify(orderedIds));
-    }
-  }, [orderedIds]);
 
   // Fetch campaigns with search query
   const { data: campaignsResponse, isLoading, refetch } = useGetCampaignQuery(searchQuery || undefined);
@@ -118,12 +101,16 @@ function CampaignListTable() {
     return apiCampaigns.map(campaign => ({
       ...campaign,
       organization_name: campaign.organization_name || "N/A",
-      title: campaign.title || "Untitled Campaign",
+      campaign_title: campaign.campaign_title || campaign.title || "Untitled Campaign",
       organization_website: campaign.organization_website || "",
-      startDate: campaign.startDate ? new Date(campaign.startDate).toLocaleDateString() : "N/A",
-      endDate: campaign.endDate ? new Date(campaign.endDate).toLocaleDateString() : "N/A",
-      targetAmount: campaign.targetAmount || 0,
-      campaignStatus: campaign.campaignStatus || "draft",
+      start_date: (campaign.start_date || campaign.startDate)
+        ? new Date(campaign.start_date || campaign.startDate!).toLocaleDateString()
+        : "N/A",
+      end_date: (campaign.end_date || campaign.endDate)
+        ? new Date(campaign.end_date || campaign.endDate!).toLocaleDateString()
+        : "N/A",
+      target_amount: campaign.target_amount || campaign.targetAmount || 0,
+      campaign_status: campaign.campaign_status || campaign.campaignStatus || "draft",
       overall_raised: campaign.overall_raised || 0,
       description: campaign.description || "",
     }));
@@ -144,35 +131,9 @@ function CampaignListTable() {
   // const apiCampaigns = campaignsResponse?.data?.result || [];
   const transformedCampaigns = transformCampaigns(apiCampaigns);
 
-  // orderedCampaigns: if we have an explicit orderedIds list (set after a duplicate),
-  // reorder the transformed campaigns to match it. Any IDs not in orderedIds are
-  // appended at the end in their original API order.
-  const orderedCampaigns = (() => {
-    if (orderedIds.length === 0) return transformedCampaigns;
-
-    const idMap = new Map(transformedCampaigns.map((c) => [c._id, c]));
-    const ordered: typeof transformedCampaigns = [];
-    const seen = new Set<string>(); 
-
-    for (const id of orderedIds) {
-      const c = idMap.get(id);
-      if (c) {
-        ordered.push(c);
-        seen.add(id);
-      }
-    }
-    // Append any campaigns from the API that aren't in our ordered list
-    for (const c of transformedCampaigns) {
-      if (!seen.has(c._id)) {
-        ordered.push(c);
-      }
-    }
-    return ordered;
-  })();
-
   // Returns true if the campaign title contains "(Copy)" — used to hide the
   // duplicate button on already-copied rows.
-  const isCopyTitle = (title: string) => /\(Copy\)/i.test(title);
+  const isCopyTitle = (title: string = "") => /\(Copy\)/i.test(title);
 
   // Get meta data for pagination
   const meta = campaignsResponse?.data?.meta || {
@@ -182,13 +143,13 @@ function CampaignListTable() {
     totalPage: 1
   };
 
-  const filteredCampaigns = orderedCampaigns.filter((campaign) => {
+  const filteredCampaigns = transformedCampaigns.filter((campaign: Campaign) => {
     const matchesSearch =
-      campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      campaign.campaign_title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       campaign.organization_name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus =
       statusFilter === "all" ||
-      campaign.campaignStatus.toLowerCase() === statusFilter.toLowerCase();
+      campaign.campaign_status.toLowerCase() === statusFilter.toLowerCase();
     return matchesSearch && matchesStatus;
   });
 
@@ -275,25 +236,7 @@ function CampaignListTable() {
     try {
       const res = await duplicateCampaign(campaign._id).unwrap();
       toast.success(res?.message || "Campaign duplicated successfully!");
-      // Build the new ordered list: insert the new copy ID right after the original.
-      // We get the new campaign id from the API response if available.
-      const newCampaignId: string | undefined = res?.data?._id || res?._id;
-      await refetch();
-      if (newCampaignId) {
-        setOrderedIds((prev) => {
-          // Start from the current display order
-          const currentIds = prev.length > 0
-            ? prev
-            : transformedCampaigns.map((c) => c._id);
-          const origIdx = currentIds.indexOf(campaign._id);
-          const next = [...currentIds];
-          // Insert new copy ID right after original (remove it first if somehow present)
-          const existingIdx = next.indexOf(newCampaignId);
-          if (existingIdx !== -1) next.splice(existingIdx, 1);
-          next.splice(origIdx === -1 ? next.length : origIdx + 1, 0, newCampaignId);
-          return next;
-        });
-      }
+      refetch();
     } catch (err: unknown) {
       let msg = "Failed to duplicate campaign";
       if (typeof err === "object" && err !== null && "data" in err) {
@@ -407,7 +350,7 @@ function CampaignListTable() {
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedCampaigns.map((campaign) => (
+              paginatedCampaigns.map((campaign: Campaign) => (
                 <TableRow
                   key={campaign._id}
                   className="bg-white hover:bg-gray-50"
@@ -416,7 +359,7 @@ function CampaignListTable() {
                     {campaign.organization_name}
                   </TableCell>
                   <TableCell className="font-medium">
-                    {campaign.title}
+                    {campaign.campaign_title}
                   </TableCell>
                   <TableCell>
                     {campaign.organization_website ? (
@@ -434,19 +377,19 @@ function CampaignListTable() {
                       <span className="text-gray-400">Not provided</span>
                     )}
                   </TableCell>
-                  <TableCell>{campaign.startDate}</TableCell>
-                  <TableCell>{campaign.endDate}</TableCell>
-                  <TableCell>{formatCurrency(campaign.targetAmount)}</TableCell>
+                  <TableCell>{campaign.start_date}</TableCell>
+                  <TableCell>{campaign.end_date}</TableCell>
+                  <TableCell>{formatCurrency(campaign.target_amount)}</TableCell>
                   <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${campaign.campaignStatus === 'active'
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${campaign.campaign_status === 'active'
                       ? 'bg-green-100 text-green-800'
-                      : campaign.campaignStatus === 'completed'
+                      : campaign.campaign_status === 'completed'
                         ? 'bg-blue-100 text-blue-800'
-                        : campaign.campaignStatus === 'upcoming'
+                        : campaign.campaign_status === 'upcoming'
                           ? 'bg-yellow-100 text-yellow-800'
                           : 'bg-gray-100 text-gray-800'
                       }`}>
-                      {campaign.campaignStatus.charAt(0).toUpperCase() + campaign.campaignStatus.slice(1)}
+                      {campaign.campaign_status.charAt(0).toUpperCase() + campaign.campaign_status.slice(1)}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -487,7 +430,7 @@ function CampaignListTable() {
                         <AlertCircle className="h-4 w-4" />
 
                       </Button>
-                      {!isCopyTitle(campaign.title) && (
+                      {!isCopyTitle(campaign.campaign_title) && (
                         <Button
                           variant="destructive"
                           size="sm"
@@ -603,7 +546,7 @@ function CampaignListTable() {
       <AlertModal
         isOpen={isAlertModalOpen}
         onClose={handleCloseAlertModal}
-        campaign={selectedCampaign2 || undefined}
+        campaign={(selectedCampaign2 as Parameters<typeof AlertModal>[0]['campaign']) || undefined}
       />
     </div>
   );
