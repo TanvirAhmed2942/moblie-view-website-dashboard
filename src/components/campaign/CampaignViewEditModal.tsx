@@ -20,6 +20,7 @@ import { Textarea } from "../ui/textarea";
 export interface CampaignData {
   id: string;
   _id?: string;
+  userId?: string;
   organizationName: string;
   campaignName: string;
   websiteUrl: string;
@@ -51,6 +52,7 @@ export interface CampaignData {
   cause_description?: string;
   cause_mission?: string;
   contactPerson_name?: string;
+  contactPerson_title?: string;
   contactPerson_email?: string;
   contactPerson_phone?: string;
   organization_taxId?: string;
@@ -58,11 +60,23 @@ export interface CampaignData {
   organization_address?: string;
   description?: string;
   targetAmount?: number;
+  target_amount?: number;
   citiesServed?: string;
   campaignStatus?: string;
   survivorsSupported?: string;
+  cause_survivors_support?: string;
   yearsOfOperation?: number;
+  cause_year_operation?: string;
   organization_network?: string;
+  campaign_title?: string;
+  campaign_description?: string;
+  campaign_start_date?: string;
+  campaign_end_date?: string;
+  start_date?: string;
+  end_date?: string;
+  payment_url?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface CampaignViewEditModalProps {
@@ -99,27 +113,29 @@ function CampaignViewEditModal({
     if (campaign) {
       const transformedData: CampaignData = {
         id: campaign._id || campaign.id,
+        userId: campaign.userId,
         organizationName: campaign.organization_name || campaign.organizationName || "",
-        campaignName: campaign.title || campaign.campaignName || "",
+        campaignName: campaign.campaign_title || campaign.title || campaign.campaignName || "",
         websiteUrl: campaign.organization_website || campaign.websiteUrl || "",
-        startDate: (campaign.startDate && !isNaN(Date.parse(campaign.startDate)))
-          ? new Date(campaign.startDate).toISOString().split('T')[0]
+        startDate: (campaign.campaign_start_date || campaign.startDate || campaign.start_date) && !isNaN(Date.parse(campaign.campaign_start_date || campaign.startDate || campaign.start_date || ""))
+          ? new Date(campaign.campaign_start_date || campaign.startDate || campaign.start_date!).toISOString().split('T')[0]
           : "",
-        endDate: (campaign.endDate && !isNaN(Date.parse(campaign.endDate)))
-          ? new Date(campaign.endDate).toISOString().split('T')[0]
+        endDate: (campaign.campaign_end_date || campaign.endDate || campaign.end_date) && !isNaN(Date.parse(campaign.campaign_end_date || campaign.endDate || campaign.end_date || ""))
+          ? new Date(campaign.campaign_end_date || campaign.endDate || campaign.end_date!).toISOString().split('T')[0]
           : "",
-        seedDonationAmount: campaign.targetAmount !== undefined
-          ? `$${campaign.targetAmount}`
+        seedDonationAmount: (campaign.target_amount !== undefined || campaign.targetAmount !== undefined)
+          ? `$${campaign.target_amount || campaign.targetAmount || 0}`
           : (campaign.seedDonationAmount || "$0"),
         causeTitle: campaign.cause_title || campaign.causeTitle || "",
-        longDescription: campaign.cause_description || campaign.description || campaign.longDescription || "",
+        longDescription: campaign.cause_description || campaign.campaign_description || campaign.description || campaign.longDescription || "",
         missionStatement: campaign.cause_mission || campaign.missionStatement || "",
         contactFullName: campaign.contactPerson_name || campaign.contactFullName || "",
+        contactTitle: campaign.contactPerson_title || campaign.contactTitle || "",
         contactEmail: campaign.contactPerson_email || campaign.contactEmail || "",
         contactPhone: campaign.contactPerson_phone || campaign.contactPhone || "",
         dafPartner: campaign.dafPartner || "",
-        internalTrackingId: campaign.internalTrackingId || "",
-        shortDescription: campaign.description || campaign.shortDescription || "",
+        internalTrackingId: campaign.payment_url || campaign.internalTrackingId || "",
+        shortDescription: campaign.campaign_description || campaign.description || campaign.shortDescription || "",
         seedDonorName: campaign.donor_name || campaign.seedDonorName || "",
         taxId: campaign.organization_taxId || campaign.taxId || "",
         organizationType: campaign.organization_type || campaign.organizationType || "",
@@ -127,25 +143,36 @@ function CampaignViewEditModal({
         cause_image: campaign.cause_image || "",
         images: campaign.images || [],
         organization_name: campaign.organization_name || campaign.organizationName || "",
-        title: campaign.title || campaign.campaignName || "",
+        title: campaign.campaign_title || campaign.title || campaign.campaignName || "",
         organization_website: campaign.organization_website || campaign.websiteUrl || "",
         donor_name: campaign.donor_name || campaign.seedDonorName || "",
         cause_title: campaign.cause_title || campaign.causeTitle || "",
-        cause_description: campaign.cause_description || campaign.description || campaign.longDescription || "",
+        cause_description: campaign.cause_description || campaign.campaign_description || campaign.description || campaign.longDescription || "",
         cause_mission: campaign.cause_mission || campaign.missionStatement || "",
         contactPerson_name: campaign.contactPerson_name || campaign.contactFullName || "",
+        contactPerson_title: campaign.contactPerson_title || campaign.contactTitle || "",
         contactPerson_email: campaign.contactPerson_email || campaign.contactEmail || "",
         contactPerson_phone: campaign.contactPerson_phone || campaign.contactPhone || "",
         organization_taxId: campaign.organization_taxId || campaign.taxId || "",
         organization_type: campaign.organization_type || campaign.organizationType || "",
         organization_address: campaign.organization_address || campaign.address || "",
         organization_network: campaign.organization_network || "",
-        description: campaign.description || campaign.shortDescription || "",
-        targetAmount: campaign.targetAmount || 0,
+        description: campaign.campaign_description || campaign.description || campaign.shortDescription || "",
+        targetAmount: campaign.target_amount || campaign.targetAmount || 0,
+        target_amount: campaign.target_amount || campaign.targetAmount || 0,
         citiesServed: campaign.citiesServed || "",
-        survivorsSupported: campaign.survivorsSupported || "",
-        yearsOfOperation: campaign.yearsOfOperation || 0,
+        survivorsSupported: campaign.cause_survivors_support || campaign.survivorsSupported || "",
+        cause_survivors_support: campaign.cause_survivors_support || campaign.survivorsSupported || "",
+        yearsOfOperation: campaign.cause_year_operation ? parseInt(campaign.cause_year_operation) : campaign.yearsOfOperation || 0,
+        cause_year_operation: campaign.cause_year_operation || "",
         campaignStatus: campaign.campaignStatus || "draft",
+        campaign_title: campaign.campaign_title || campaign.title || campaign.campaignName || "",
+        campaign_description: campaign.campaign_description || campaign.description || campaign.shortDescription || "",
+        campaign_start_date: campaign.campaign_start_date || campaign.startDate || campaign.start_date || "",
+        campaign_end_date: campaign.campaign_end_date || campaign.endDate || campaign.end_date || "",
+        payment_url: campaign.payment_url || "",
+        createdAt: campaign.createdAt || "",
+        updatedAt: campaign.updatedAt || "",
       };
 
       setFormData(transformedData);
@@ -233,11 +260,20 @@ function CampaignViewEditModal({
       organization_address: formData.address,
       organization_network: formData.organization_network,
       contactPerson_name: formData.contactFullName,
+      contactPerson_title: formData.contactTitle,
       contactPerson_email: formData.contactEmail,
       contactPerson_phone: formData.contactPhone,
       cause_title: formData.causeTitle,
       cause_description: formData.longDescription,
       cause_mission: formData.missionStatement,
+      cause_year_operation: formData.yearsOfOperation?.toString() || formData.cause_year_operation || "",
+      cause_survivors_support: formData.survivorsSupported || formData.cause_survivors_support || "",
+      campaign_title: formData.campaignName,
+      campaign_description: formData.shortDescription,
+      target_amount: targetAmount,
+      campaign_start_date: formData.startDate,
+      campaign_end_date: formData.endDate,
+      payment_url: formData.internalTrackingId || formData.payment_url || "",
       title: formData.campaignName,
       address: formData.address,
       description: formData.shortDescription,
@@ -459,26 +495,6 @@ function CampaignViewEditModal({
                       </p>
                     )}
                   </div>
-
-                  <div>
-                    <Label className="text-gray-700 font-medium">
-                      Cities Served
-                    </Label>
-                    {isEditMode ? (
-                      <Textarea
-                        value={formData.citiesServed || ""}
-                        onChange={(e) =>
-                          handleInputChange("citiesServed", e.target.value)
-                        }
-                        className="mt-1 border-gray-300 min-h-[80px]"
-                        disabled={isSaving}
-                      />
-                    ) : (
-                      <p className="mt-1 text-gray-900 whitespace-pre-wrap">
-                        {formData.citiesServed}
-                      </p>
-                    )}
-                  </div>
                   <div>
                     <Label className="text-gray-700 font-medium">
                       years Of Operation
@@ -565,25 +581,7 @@ function CampaignViewEditModal({
                       </p>
                     )}
                   </div>
-                  <div>
-                    <Label className="text-gray-700 font-medium">
-                      Seed Donor Name:
-                    </Label>
-                    {isEditMode ? (
-                      <Input
-                        value={formData.seedDonorName || ""}
-                        onChange={(e) =>
-                          handleInputChange("seedDonorName", e.target.value)
-                        }
-                        className="mt-1 border-gray-300"
-                        disabled={isSaving}
-                      />
-                    ) : (
-                      <p className="mt-1 text-gray-900">
-                        {formData.seedDonorName}
-                      </p>
-                    )}
-                  </div>
+
                   <div>
                     <Label className="text-gray-700 font-medium">
                       Seed Donation Amount:

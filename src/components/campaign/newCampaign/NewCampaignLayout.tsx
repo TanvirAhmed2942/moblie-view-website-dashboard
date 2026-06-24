@@ -132,21 +132,30 @@ function NewCampaignLayout() {
         organization_type: finalFormData.organization?.organization_type,
         organization_website: finalFormData.organization?.organization_website,
         organization_address: finalFormData.organization?.organization_address,
+
         contactPerson_name: finalFormData.contact?.contactPerson_name,
+        contactPerson_title: finalFormData.contact?.contactPerson_title,
         contactPerson_email: finalFormData.contact?.contactPerson_email,
         contactPerson_phone: finalFormData.contact?.contactPerson_phone,
+
         cause_title: finalFormData.cause?.cause_title,
         cause_description: finalFormData.cause?.cause_description,
         cause_mission: finalFormData.cause?.cause_mission,
+        cause_year_operation: finalFormData.cause?.yearsOfOperation !== undefined
+          ? String(finalFormData.cause.yearsOfOperation)
+          : "",
+        cause_survivors_support: finalFormData.cause?.survivors_support !== undefined
+          ? String(finalFormData.cause.survivors_support)
+          : "",
         citiesServed: finalFormData.cause?.cities_served,
-        yearsOfOperation: finalFormData.cause?.yearsOfOperation,
-        survivorsSupported: finalFormData.cause?.survivors_support,
-        title: finalFormData.settings?.title,
-        description: finalFormData.settings?.description,
-        targetAmount: finalFormData.settings?.targetAmount ? Number(finalFormData.settings.targetAmount) : 0,
-        startDate: finalFormData.settings?.startDate,
-        endDate: finalFormData.settings?.endDate,
-        internalTrackingId: routingData.payment_url,
+
+        campaign_title: finalFormData.settings?.title,
+        campaign_description: finalFormData.settings?.description,
+        target_amount: finalFormData.settings?.targetAmount ? Number(finalFormData.settings.targetAmount) : 0,
+        campaign_start_date: finalFormData.settings?.startDate,
+        campaign_end_date: finalFormData.settings?.endDate,
+
+        payment_url: routingData.payment_url,
         campaignStatus: "active",
       };
 

@@ -291,24 +291,7 @@ function AboutTheCauseForm({
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="cities_served" className="text-gray-700">
-              Cities Served:
-              <span className="text-red-500 ml-1">*</span>
-            </Label>
-            <Input
-              id="cities_served"
-              type='text'
-              value={formData.cities_served || ''}
-              onChange={(e) => handleInputChange("cities_served", e.target.value)}
-              placeholder="Enter cities served"
-              className={`bg-gray-50 border-gray-200 ${errors.cities_served ? 'border-red-500' : ''}`}
-              required
-            />
-            {errors.cities_served && (
-              <p className="text-red-500 text-sm mt-1">{errors.cities_served}</p>
-            )}
-          </div>
+
         </div>
 
         <div className='grid grid-cols-2 gap-3'>

@@ -27,21 +27,38 @@ import AlertModal from './AlertModal';
 import CampaignViewEditModal from "./CampaignViewEditModal";
 
 // Interface matching API response
-// Interface matching API response
-// Interface matching API response
 interface Campaign {
   _id: string;
+  userId: string;
   organization_name: string;
-  campaign_title: string;
-  title?: string;
+  organization_type: string;
   organization_website: string;
-  start_date: string;
-  end_date: string;
+  organization_address: string;
+  contactPerson_name: string;
+  contactPerson_title: string;
+  contactPerson_email: string;
+  contactPerson_phone: string;
+  cause_title: string;
+  cause_description: string;
+  cause_year_operation: string;
+  cause_survivors_support: string;
+  cause_mission: string;
+  images: string[];
+  campaign_title: string;
+  target_amount: number;
+  campaign_description: string;
+  campaign_start_date: string;
+  campaign_end_date: string;
+  payment_url: string;
+  createdAt: string;
+  updatedAt: string;
+  title?: string;
+  start_date?: string;
+  end_date?: string;
   startDate?: string;
   endDate?: string;
-  target_amount: number;
   targetAmount?: number;
-  campaign_status: string;
+  campaign_status?: string;
   campaignStatus?: string;
   overall_raised?: number;
   description?: string;
@@ -49,19 +66,9 @@ interface Campaign {
   donor_name?: string;
   createdBy?: string;
   total_invitees?: number;
-  organization_type?: string;
   organization_taxId?: string;
-  organization_address?: string;
-  contactPerson_name?: string;
-  contactPerson_email?: string;
-  contactPerson_phone?: string;
-  cause_title?: string;
-  cause_description?: string;
-  cause_mission?: string;
   cause_image?: string;
   isDeleted?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
 }
 function CampaignListTable() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -82,6 +89,8 @@ function CampaignListTable() {
   // Fetch campaigns with search query
   const { data: campaignsResponse, isLoading, refetch } = useGetCampaignQuery(searchQuery || undefined);
 
+  console.log("campaignResponse ", campaignsResponse)
+
   // Get campaigns from API response
   const apiCampaigns: Campaign[] = campaignsResponse?.data?.result || [];
 
@@ -98,22 +107,40 @@ function CampaignListTable() {
 
   // Convert API response to UI format (preserving all fields for the modal fallback)
   const transformCampaigns = (apiCampaigns: Campaign[]) => {
-    return apiCampaigns.map(campaign => ({
-      ...campaign,
-      organization_name: campaign.organization_name || "N/A",
-      campaign_title: campaign.campaign_title || campaign.title || "Untitled Campaign",
-      organization_website: campaign.organization_website || "",
-      start_date: (campaign.start_date || campaign.startDate)
-        ? new Date(campaign.start_date || campaign.startDate!).toLocaleDateString()
-        : "N/A",
-      end_date: (campaign.end_date || campaign.endDate)
-        ? new Date(campaign.end_date || campaign.endDate!).toLocaleDateString()
-        : "N/A",
-      target_amount: campaign.target_amount || campaign.targetAmount || 0,
-      campaign_status: campaign.campaign_status || campaign.campaignStatus || "draft",
-      overall_raised: campaign.overall_raised || 0,
-      description: campaign.description || "",
-    }));
+    return apiCampaigns.map(campaign => {
+      // Calculate campaign status based on dates
+      let campaign_status = "draft";
+      const now = new Date();
+      const startDate = new Date(campaign.campaign_start_date || campaign.start_date || campaign.startDate || "");
+      const endDate = new Date(campaign.campaign_end_date || campaign.end_date || campaign.endDate || "");
+
+      if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+        if (now < startDate) {
+          campaign_status = "upcoming";
+        } else if (now >= startDate && now <= endDate) {
+          campaign_status = "active";
+        } else if (now > endDate) {
+          campaign_status = "completed";
+        }
+      }
+
+      return {
+        ...campaign,
+        organization_name: campaign.organization_name || "N/A",
+        campaign_title: campaign.campaign_title || campaign.title || "Untitled Campaign",
+        organization_website: campaign.organization_website || "",
+        start_date: (campaign.campaign_start_date || campaign.start_date || campaign.startDate)
+          ? new Date(campaign.campaign_start_date || campaign.start_date || campaign.startDate!).toLocaleDateString()
+          : "N/A",
+        end_date: (campaign.campaign_end_date || campaign.end_date || campaign.endDate)
+          ? new Date(campaign.campaign_end_date || campaign.end_date || campaign.endDate!).toLocaleDateString()
+          : "N/A",
+        target_amount: campaign.target_amount || campaign.targetAmount || 0,
+        campaign_status: campaign.campaign_status || campaign.campaignStatus || campaign_status,
+        overall_raised: campaign.overall_raised || 0,
+        description: campaign.campaign_description || campaign.description || "",
+      };
+    });
   };
 
   // Handle search with debounce
@@ -145,11 +172,11 @@ function CampaignListTable() {
 
   const filteredCampaigns = transformedCampaigns.filter((campaign: Campaign) => {
     const matchesSearch =
-      campaign.campaign_title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      campaign.organization_name.toLowerCase().includes(searchQuery.toLowerCase());
+      (campaign.campaign_title?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+      (campaign.organization_name?.toLowerCase() || "").includes(searchQuery.toLowerCase());
     const matchesStatus =
       statusFilter === "all" ||
-      campaign.campaign_status.toLowerCase() === statusFilter.toLowerCase();
+      (campaign.campaign_status?.toLowerCase() || "") === statusFilter.toLowerCase();
     return matchesSearch && matchesStatus;
   });
 
@@ -389,7 +416,7 @@ function CampaignListTable() {
                           ? 'bg-yellow-100 text-yellow-800'
                           : 'bg-gray-100 text-gray-800'
                       }`}>
-                      {campaign.campaign_status.charAt(0).toUpperCase() + campaign.campaign_status.slice(1)}
+                      {(campaign.campaign_status || "draft").charAt(0).toUpperCase() + (campaign.campaign_status || "draft").slice(1)}
                     </span>
                   </TableCell>
                   <TableCell>
