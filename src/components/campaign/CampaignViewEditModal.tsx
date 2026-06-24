@@ -3,7 +3,7 @@ import { Megaphone, X } from "lucide-react";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { useUpdateCampaignMutation } from '../../features/campaign/campaignApi';
+import { useDeleteImageWithCampaignMutation, useUpdateCampaignMutation } from '../../features/campaign/campaignApi';
 import { baseURL } from '../../utils/BaseURL';
 import { RTKError } from '../../utils/type';
 import { Button } from "../ui/button";
@@ -106,6 +106,7 @@ function CampaignViewEditModal({
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [updateCampaign] = useUpdateCampaignMutation();
+  const [deleteImageWithCampaign] = useDeleteImageWithCampaignMutation();
 
   // console.log("CampaignViewEditModal campaign prop:", campaign);
 
@@ -226,10 +227,22 @@ function CampaignViewEditModal({
     e.target.value = '';
   };
 
-  const removeImage = (index: number) => {
+  const removeImage = async (index: number) => {
     const imageToRemove = imagePreviews[index];
 
-    if (imageToRemove.isExisting && imageToRemove.originalPath) {
+    if (imageToRemove.isExisting && imageToRemove.originalPath && formData?.id) {
+      try {
+        // Call API to delete image
+        await deleteImageWithCampaign({
+          id: formData.id,
+          imageUrl: imageToRemove.originalPath
+        }).unwrap();
+        toast.success("Image removed successfully!");
+      } catch (error: unknown) {
+        const err = error as RTKError;
+        toast.error(err?.data?.message || "Failed to remove image. Please try again.");
+        return; // Don't update UI if API call fails
+      }
       // Remove from existing images array
       setExistingImages(prev => prev.filter(img => img !== imageToRemove.originalPath));
     } else {

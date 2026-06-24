@@ -67,8 +67,18 @@ export const overviewApi = baseApi.injectEndpoints({
       invalidatesTags: ['campaigns'],
     }),
 
-  }),
+    deleteImageWithCampaign: builder.mutation({
+      query: ({ id, imageUrl }) => ({
+        url: `/campaign/image/${id}`,
+        method: 'DELETE',
+        body: { imageUrl: imageUrl }
+      }),
+      invalidatesTags: ['campaigns'],
+    }),
 
+
+
+  }),
 });
 
 // Export hooks
@@ -80,4 +90,5 @@ export const {
   useDeleteCampaignMutation,
   useSetAlertCampaignMutation,
   useDuplicateCampaignMutation,
+  useDeleteImageWithCampaignMutation,
 } = overviewApi;
